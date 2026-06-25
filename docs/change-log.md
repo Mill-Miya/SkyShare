@@ -29,6 +29,7 @@ This file records implementation work and notable design changes so progress can
   - Switched to a smaller moving dot inside the innermost ring.
   - Kept `◎` for acquired state.
 - Fixed guidance panel sizing so popup dimensions do not change between pre-acquired and acquired states.
+- Increased the fixed guidance panel height to fit the acquired-state content without clipping.
 
 ## Ongoing Rule
 

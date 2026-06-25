@@ -147,12 +147,14 @@ input {
   justify-items: center;
   gap: 3px;
   min-width: min(280px, calc(100% - 24px));
-  min-height: 176px;
+  min-height: 202px;
+  max-height: 202px;
   padding: 10px 12px;
   border: 1px solid rgba(255, 238, 170, 0.24);
   border-radius: 8px;
   color: #fff2c8;
   background: rgba(0, 0, 0, 0.46);
+  overflow: hidden;
   pointer-events: none;
 }
 
