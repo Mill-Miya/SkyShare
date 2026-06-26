@@ -69,7 +69,9 @@ This file records implementation work and notable design changes so progress can
 - Adjusted altitude guide arcs to span the visible Sky view more consistently and increased their alpha slightly for readability.
 - Replaced screen-space altitude arcs with true sphere-projected altitude circles so the guide lines stay attached to the sky view.
 - Removed altitude guide lines and kept only the zenith marker to avoid misleading sky overlays.
-- Fixed the mountain silhouette to stay screen-stable while following the horizon vertically.
+- Changed the mountain silhouette from screen-fixed to a stable sky-fixed azimuth profile so it stays attached to the horizon sphere without jitter.
+- Made the sky-fixed mountain silhouette more angular by reducing chamfering and using sharper profile peaks.
+- Changed mountain peaks and valleys to an uneven azimuth profile so the spacing no longer looks mechanically regular.
 - Reduced card-like UI weight for Sky, Targets, Settings notes, and the bottom navigation while keeping guidance panels clear.
 
 ## Ongoing Rule

@@ -109,8 +109,8 @@ export function drawGroundAndMountains(
   width: number,
   height: number,
   horizonY: number,
-  _view: ViewState,
-  _pxPerDeg: number,
+  view: ViewState,
+  pxPerDeg: number,
 ) {
   if (horizonY <= 0) {
     context.fillStyle = 'rgba(0, 0, 0, 0.68)';
@@ -126,20 +126,17 @@ export function drawGroundAndMountains(
   groundGradient.addColorStop(0.38, 'rgba(0, 0, 0, 0.96)');
   groundGradient.addColorStop(1, 'rgba(0, 0, 0, 0.78)');
 
-  const ridgePoints = [
-    { x: 0, height: 18 },
-    { x: width * 0.08, height: 26 },
-    { x: width * 0.19, height: 20 },
-    { x: width * 0.31, height: 34 },
-    { x: width * 0.45, height: 24 },
-    { x: width * 0.58, height: 31 },
-    { x: width * 0.73, height: 22 },
-    { x: width * 0.86, height: 36 },
-    { x: width, height: 25 },
-  ].map((point) => ({
-    x: point.x,
-    y: horizonY - point.height,
-  }));
+  const centerX = width / 2;
+  const stepPx = Math.max(10, width / 48);
+  const ridgePoints: Array<{ x: number; y: number }> = [];
+
+  for (let x = -stepPx; x <= width + stepPx; x += stepPx) {
+    const azimuthDeg = normalizeAzimuth(view.centerAzimuthDeg + (x - centerX) / pxPerDeg);
+    ridgePoints.push({
+      x,
+      y: horizonY - mountainHeightAtAzimuth(azimuthDeg),
+    });
+  }
 
   if (ridgePoints.length < 2) return;
 
@@ -155,7 +152,7 @@ export function drawGroundAndMountains(
 
     const previous = ridgePoints[index - 1];
     const next = ridgePoints[index + 1];
-    const chamfer = 0.1;
+    const chamfer = 0.035;
     context.lineTo(current.x + (previous.x - current.x) * chamfer, current.y + (previous.y - current.y) * chamfer);
     context.lineTo(current.x + (next.x - current.x) * chamfer, current.y + (next.y - current.y) * chamfer);
   }
@@ -165,6 +162,43 @@ export function drawGroundAndMountains(
   context.closePath();
   context.fillStyle = groundGradient;
   context.fill();
+}
+
+const MOUNTAIN_PROFILE = [
+  { az: 0, height: 18 },
+  { az: 13, height: 36 },
+  { az: 31, height: 16 },
+  { az: 49, height: 44 },
+  { az: 66, height: 23 },
+  { az: 91, height: 39 },
+  { az: 108, height: 14 },
+  { az: 129, height: 49 },
+  { az: 151, height: 25 },
+  { az: 166, height: 19 },
+  { az: 188, height: 41 },
+  { az: 207, height: 15 },
+  { az: 229, height: 34 },
+  { az: 247, height: 22 },
+  { az: 271, height: 46 },
+  { az: 288, height: 17 },
+  { az: 313, height: 38 },
+  { az: 331, height: 20 },
+  { az: 350, height: 35 },
+];
+
+function mountainHeightAtAzimuth(azimuthDeg: number) {
+  const azimuth = normalizeAzimuth(azimuthDeg);
+  const currentIndex = MOUNTAIN_PROFILE.findIndex((point, index) => {
+    const next = MOUNTAIN_PROFILE[index + 1];
+    return next ? azimuth >= point.az && azimuth < next.az : false;
+  });
+  const index = currentIndex >= 0 ? currentIndex : MOUNTAIN_PROFILE.length - 1;
+  const current = MOUNTAIN_PROFILE[index];
+  const next = MOUNTAIN_PROFILE[(index + 1) % MOUNTAIN_PROFILE.length];
+  const span = next.az > current.az ? next.az - current.az : next.az + 360 - current.az;
+  const offset = azimuth >= current.az ? azimuth - current.az : azimuth + 360 - current.az;
+  const t = offset / span;
+  return current.height + (next.height - current.height) * t;
 }
 
 export function drawTargetObject(
