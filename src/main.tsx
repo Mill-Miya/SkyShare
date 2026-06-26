@@ -179,30 +179,41 @@ function SkyCanvas({
       context.textAlign = 'left';
       context.textBaseline = 'middle';
       [0, 30, 60].forEach((altitudeDeg) => {
-        const baseY = centerY - (altitudeDeg - view.centerAltitudeDeg) * pxPerDeg;
-        if (baseY < -height * 0.35 || baseY > height * 1.35) return;
-        const curveStrength =
-          width *
-          (altitudeDeg === 0 ? 0.025 : 0.045) *
-          Math.max(0.35, Math.cos(toRad(altitudeDeg)));
-        const bendDirection = altitudeDeg >= view.centerAltitudeDeg ? 1 : -1;
         context.strokeStyle = altitudeDeg === 0 ? horizonGuideColor : guideColor;
         context.beginPath();
-        for (let index = 0; index <= 80; index += 1) {
-          const x = (width * index) / 80;
-          const normalizedX = (x - centerX) / Math.max(centerX, width - centerX);
-          const y = baseY + bendDirection * curveStrength * (normalizedX * normalizedX - 0.42);
-          if (index === 0) {
-            context.moveTo(x, y);
+        const visiblePoints: { x: number; y: number }[] = [];
+        let segmentStarted = false;
+        const samples = 180;
+        for (let index = 0; index <= samples; index += 1) {
+          const azimuthDeg = (360 * index) / samples;
+          const point = projectAltAz(azimuthDeg, altitudeDeg);
+          const visible =
+            point &&
+            point.x >= -width * 0.12 &&
+            point.x <= width * 1.12 &&
+            point.y >= -height * 0.12 &&
+            point.y <= height * 1.12;
+
+          if (!visible) {
+            context.stroke();
+            context.beginPath();
+            segmentStarted = false;
+            continue;
+          }
+
+          visiblePoints.push(point);
+          if (!segmentStarted) {
+            context.moveTo(point.x, point.y);
+            segmentStarted = true;
           } else {
-            context.lineTo(x, y);
+            context.lineTo(point.x, point.y);
           }
         }
         context.stroke();
-        const labelY = baseY - bendDirection * curveStrength * 0.28;
-        if (labelY > -16 && labelY < height + 16) {
+        const labelPoint = visiblePoints.find((point) => point.x >= 8 && point.y >= 12 && point.y <= height - 12);
+        if (labelPoint) {
           context.fillStyle = labelColor;
-          context.fillText(`${altitudeDeg}°`, 12, labelY - 8);
+          context.fillText(`${altitudeDeg}°`, Math.max(12, labelPoint.x), labelPoint.y - 8);
         }
       });
       const zenithPoint = projectAltAz(view.centerAzimuthDeg, 90);
