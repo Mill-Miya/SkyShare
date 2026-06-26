@@ -120,7 +120,8 @@ export function drawGroundAndMountains(
 
   if (horizonY > height + 120) return;
 
-  const visibleHorizonY = Math.min(horizonY, height);
+  const mountainBaseY = Math.min(horizonY, height + 36);
+  const visibleHorizonY = Math.min(mountainBaseY, height);
   const groundGradient = context.createLinearGradient(0, visibleHorizonY, 0, height);
   groundGradient.addColorStop(0, 'rgba(0, 0, 0, 1)');
   groundGradient.addColorStop(0.38, 'rgba(0, 0, 0, 0.96)');
@@ -134,7 +135,7 @@ export function drawGroundAndMountains(
     const azimuthDeg = normalizeAzimuth(view.centerAzimuthDeg + (x - centerX) / pxPerDeg);
     ridgePoints.push({
       x,
-      y: horizonY - mountainHeightAtAzimuth(azimuthDeg),
+      y: mountainBaseY - mountainHeightAtAzimuth(azimuthDeg),
     });
   }
 
@@ -142,7 +143,7 @@ export function drawGroundAndMountains(
 
   context.beginPath();
   context.moveTo(0, height);
-  context.lineTo(0, horizonY);
+  context.lineTo(0, mountainBaseY);
   for (let index = 0; index < ridgePoints.length; index += 1) {
     const current = ridgePoints[index];
     if (index === 0 || index === ridgePoints.length - 1) {
@@ -157,7 +158,7 @@ export function drawGroundAndMountains(
     context.lineTo(current.x + (next.x - current.x) * chamfer, current.y + (next.y - current.y) * chamfer);
   }
 
-  context.lineTo(width, horizonY);
+  context.lineTo(width, mountainBaseY);
   context.lineTo(width, height);
   context.closePath();
   context.fillStyle = groundGradient;
