@@ -85,7 +85,7 @@ export type SessionState = {
 export type ClientWsMessage =
   | { type: 'host:join'; sessionId: string }
   | { type: 'guest:join'; sessionId: string }
-  | { type: 'target:update'; targetId: TargetId | null }
+  | { type: 'target:update'; targetId: TargetId | null; shareMode?: 'off' | 'target' }
   | { type: 'pointer:update'; azimuth: number; altitude: number }
   | { type: 'session:end' };
 
@@ -94,11 +94,11 @@ export type ServerWsMessage =
       type: 'session:state';
       sessionId: string;
       targetId: TargetId | null;
-      shareMode: ShareMode;
+      shareMode?: ShareMode;
       pointer: SharedPointer | null;
       participantCount: number;
     }
-  | { type: 'target:update'; targetId: TargetId | null }
+  | { type: 'target:update'; targetId: TargetId | null; shareMode?: 'off' | 'target' }
   | { type: 'pointer:update'; azimuth: number; altitude: number }
   | { type: 'session:ended'; reason: 'host_ended' | 'host_disconnected' | 'server_shutdown' }
   | { type: 'error'; code: 'SESSION_NOT_FOUND' | 'HOST_REQUIRED' | 'INVALID_MESSAGE' };

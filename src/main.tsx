@@ -420,8 +420,9 @@ function App() {
     }
 
     if (message.type === 'target:update') {
+      const nextShareMode = message.shareMode ?? (message.targetId ? 'target' : 'off');
       setSharedTargetId(message.targetId);
-      setShareMode(message.targetId ? 'target' : 'off');
+      setShareMode(nextShareMode);
       setSharedPointer(null);
       if (message.targetId) {
         setSelectedTargetId(message.targetId);
@@ -470,8 +471,11 @@ function App() {
     socket.addEventListener('open', () => {
       setConnectionStatus('connected');
       sendSessionMessage({ type: role === 'host' ? 'host:join' : 'guest:join', sessionId: nextSessionId });
-      if (role === 'host' && selectedTargetId && shareMode === 'target') {
-        window.setTimeout(() => sendSessionMessage({ type: 'target:update', targetId: selectedTargetId }), 0);
+      if (role === 'host' && shareMode === 'target') {
+        window.setTimeout(
+          () => sendSessionMessage({ type: 'target:update', targetId: selectedTargetId, shareMode: 'target' }),
+          0,
+        );
       }
     });
 
@@ -523,7 +527,7 @@ function App() {
     setSharedTargetId(null);
     setShareMode('off');
     setSharedPointer(null);
-    sendSessionMessage({ type: 'target:update', targetId: null });
+    sendSessionMessage({ type: 'target:update', targetId: null, shareMode: 'off' });
   }
 
   function startSharingTarget() {
@@ -531,7 +535,7 @@ function App() {
     setSharedTargetId(selectedTargetId);
     setShareMode('target');
     setSharedPointer(null);
-    sendSessionMessage({ type: 'target:update', targetId: selectedTargetId });
+    sendSessionMessage({ type: 'target:update', targetId: selectedTargetId, shareMode: 'target' });
   }
 
   function startPointerSharing() {
@@ -687,7 +691,7 @@ function App() {
   useEffect(() => {
     if (sessionRole !== 'host' || shareMode !== 'target') return;
     setSharedTargetId(selectedTargetId);
-    sendSessionMessage({ type: 'target:update', targetId: selectedTargetId });
+    sendSessionMessage({ type: 'target:update', targetId: selectedTargetId, shareMode: 'target' });
   }, [selectedTargetId, sessionRole, shareMode]);
 
   useEffect(() => {
@@ -1226,7 +1230,7 @@ function SessionPage({
             <span>共有: {shareMode === 'target' ? '天体' : shareMode === 'pointer' ? '方向' : 'OFF'}</span>
             <strong>
               {shareMode === 'target'
-                ? (sharedTarget?.label ?? '共有中')
+                ? (sharedTarget?.label ?? '天体未選択')
                 : shareMode === 'pointer'
                   ? '方向案内中'
                   : '現在共有中の案内はありません。'}

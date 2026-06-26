@@ -63,6 +63,7 @@ This file records implementation work and notable design changes so progress can
 - Added client fallback so session state without `shareMode` still restores target sharing from `targetId`.
 - Allowed `selectedTargetId` to start as `null` and added a Targets "選択なし" action.
 - Separated Host selection from sharing behavior so target sharing with no selected target sends `targetId: null` while pointer sharing remains available.
+- Preserved target-share mode with no selected target by allowing `target:update` to carry an optional `shareMode` field.
 - Added subtle altitude guide lines, zenith label, center altitude readout, and a Settings toggle for altitude guidance.
 - Reduced card-like UI weight for Sky, Targets, Settings notes, and the bottom navigation while keeping guidance panels clear.
 

@@ -40,10 +40,17 @@ function broadcastState(sessionId, room) {
 }
 
 function broadcastTarget(sessionId, room, targetId) {
-  const message = { type: 'target:update', targetId };
+  const message = { type: 'target:update', targetId, shareMode: room.shareMode };
   room.guests.forEach((guest) => sendJson(guest, message));
   if (room.host) sendJson(room.host, message);
   broadcastState(sessionId, room);
+}
+
+function resolveTargetShareMode(message) {
+  if (message.shareMode === 'off' || message.shareMode === 'target') {
+    return message.shareMode;
+  }
+  return message.targetId ? 'target' : 'off';
 }
 
 function broadcastPointer(sessionId, room, azimuthDeg, altitudeDeg) {
@@ -165,7 +172,7 @@ wss.on('connection', (socket) => {
       }
 
       room.targetId = message.targetId;
-      room.shareMode = message.targetId ? 'target' : 'off';
+      room.shareMode = resolveTargetShareMode(message);
       room.pointer = null;
       broadcastTarget(joinedSessionId, room, message.targetId);
       return;
