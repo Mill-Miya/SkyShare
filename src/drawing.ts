@@ -118,9 +118,9 @@ export function drawGroundAndMountains(
     return;
   }
 
-  const mountainBaseY = Math.min(horizonY, height + 42);
-  const visibleHorizonY = Math.min(mountainBaseY, height);
-  const groundGradient = context.createLinearGradient(0, visibleHorizonY, 0, height);
+  const mountainBaseY = horizonY;
+  const gradientTopY = Math.max(0, Math.min(mountainBaseY, height - 1));
+  const groundGradient = context.createLinearGradient(0, gradientTopY, 0, height);
   groundGradient.addColorStop(0, 'rgba(0, 0, 0, 1)');
   groundGradient.addColorStop(0.38, 'rgba(0, 0, 0, 0.96)');
   groundGradient.addColorStop(1, 'rgba(0, 0, 0, 0.78)');
@@ -133,7 +133,7 @@ export function drawGroundAndMountains(
     const azimuthDeg = normalizeAzimuth(view.centerAzimuthDeg + (x - centerX) / pxPerDeg);
     ridgePoints.push({
       x,
-      y: mountainBaseY - mountainHeightAtAzimuth(azimuthDeg),
+      y: mountainBaseY - mountainHeightAtAzimuth(azimuthDeg) * pxPerDeg,
     });
   }
 
@@ -164,34 +164,34 @@ export function drawGroundAndMountains(
 }
 
 const MOUNTAIN_PROFILE = [
-  { az: 0, height: 18 },
-  { az: 7, height: 34 },
-  { az: 18, height: 15 },
-  { az: 24, height: 28 },
-  { az: 43, height: 46 },
-  { az: 52, height: 22 },
-  { az: 58, height: 31 },
-  { az: 76, height: 17 },
-  { az: 96, height: 43 },
-  { az: 109, height: 13 },
-  { az: 117, height: 24 },
-  { az: 126, height: 51 },
-  { az: 147, height: 26 },
-  { az: 155, height: 18 },
-  { az: 171, height: 36 },
-  { az: 193, height: 15 },
-  { az: 204, height: 44 },
-  { az: 211, height: 20 },
-  { az: 236, height: 33 },
-  { az: 252, height: 21 },
-  { az: 264, height: 47 },
-  { az: 281, height: 16 },
-  { az: 291, height: 30 },
-  { az: 309, height: 39 },
-  { az: 321, height: 19 },
-  { az: 337, height: 42 },
-  { az: 346, height: 23 },
-  { az: 354, height: 36 },
+  { az: 0, height: 2.4 },
+  { az: 7, height: 5.6 },
+  { az: 18, height: 1.9 },
+  { az: 24, height: 4.1 },
+  { az: 43, height: 7.2 },
+  { az: 52, height: 3.0 },
+  { az: 58, height: 4.8 },
+  { az: 76, height: 2.2 },
+  { az: 96, height: 6.8 },
+  { az: 109, height: 1.7 },
+  { az: 117, height: 3.2 },
+  { az: 126, height: 8.0 },
+  { az: 147, height: 3.5 },
+  { az: 155, height: 2.1 },
+  { az: 171, height: 5.4 },
+  { az: 193, height: 1.8 },
+  { az: 204, height: 7.0 },
+  { az: 211, height: 2.7 },
+  { az: 236, height: 4.6 },
+  { az: 252, height: 2.9 },
+  { az: 264, height: 7.4 },
+  { az: 281, height: 2.0 },
+  { az: 291, height: 4.2 },
+  { az: 309, height: 6.1 },
+  { az: 321, height: 2.5 },
+  { az: 337, height: 6.6 },
+  { az: 346, height: 3.1 },
+  { az: 354, height: 5.0 },
 ];
 
 function mountainHeightAtAzimuth(azimuthDeg: number) {

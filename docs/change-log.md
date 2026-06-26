@@ -72,8 +72,7 @@ This file records implementation work and notable design changes so progress can
 - Changed the mountain silhouette from screen-fixed to a stable sky-fixed azimuth profile so it stays attached to the horizon sphere without jitter.
 - Made the sky-fixed mountain silhouette more angular by reducing chamfering and using sharper profile peaks.
 - Changed mountain peaks and valleys to an uneven azimuth profile so the spacing no longer looks mechanically regular.
-- Kept the mountain silhouette visible near the lower screen edge by clamping its drawing base slightly below the viewport.
-- Removed the lower-edge mountain draw cutoff and added denser, uneven mountain peaks so edge views do not make the silhouette disappear.
+- Changed the mountain silhouette height from screen pixels to angular altitude above the horizon, keeping the fixed design attached to the sky sphere without artificial fade or cutoff.
 - Reduced card-like UI weight for Sky, Targets, Settings notes, and the bottom navigation while keeping guidance panels clear.
 
 ## Ongoing Rule
