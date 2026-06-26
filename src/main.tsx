@@ -39,14 +39,42 @@ const FALLBACK_LOCATION: ObserverLocation = {
 const SHEET_ANIMATION_MS = 220;
 const VIEW_ANIMATION_MS = 720;
 
+function joinUrlPath(sessionId: string) {
+  const basePath = import.meta.env.BASE_URL || '/';
+  return `${basePath}${basePath.endsWith('/') ? '' : '/'}join/${sessionId}`;
+}
+
 function getWebSocketUrl() {
+  const configuredUrl = import.meta.env.VITE_WS_URL;
+  if (configuredUrl) {
+    const url = new URL(configuredUrl);
+    if (url.pathname === '/' || url.pathname === '') {
+      url.pathname = '/ws';
+    }
+    return url.toString();
+  }
+
   const url = new URL('/ws', window.location.href);
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
   return url.toString();
 }
 
+function getApiUrl(path: string) {
+  const configuredBase = import.meta.env.VITE_API_BASE_URL;
+  if (!configuredBase) return path;
+
+  const url = new URL(configuredBase);
+  url.pathname = `${url.pathname.replace(/\/$/, '')}${path}`;
+  return url.toString();
+}
+
 function getJoinSessionId() {
-  const match = window.location.pathname.match(/^\/join\/([^/]+)$/);
+  const basePath = import.meta.env.BASE_URL || '/';
+  const normalizedBase = basePath.endsWith('/') ? basePath.slice(0, -1) : basePath;
+  const path = normalizedBase && window.location.pathname.startsWith(normalizedBase)
+    ? window.location.pathname.slice(normalizedBase.length)
+    : window.location.pathname;
+  const match = path.match(/^\/join\/([^/]+)$/);
   return match?.[1] ?? null;
 }
 
@@ -410,8 +438,8 @@ function App() {
     setQrCodeUrl('');
     setSessionError(null);
     setSessionNotice(notice);
-    if (window.location.pathname.startsWith('/join/')) {
-      window.history.replaceState(null, '', '/');
+    if (getJoinSessionId()) {
+      window.history.replaceState(null, '', import.meta.env.BASE_URL || '/');
     }
   }
 
@@ -536,7 +564,7 @@ function App() {
   async function createHostSession() {
     setSessionError(null);
     setSessionNotice(null);
-    const response = await fetch('/api/session', { method: 'POST' });
+    const response = await fetch(getApiUrl('/api/session'), { method: 'POST' });
     if (!response.ok) {
       setSessionError('SESSION_CREATE_FAILED');
       return;
@@ -546,7 +574,7 @@ function App() {
     setSharedTargetId(selectedTargetId);
     setShareMode(selectedTargetId ? 'target' : 'off');
     setSharedPointer(null);
-    const nextJoinUrl = `${window.location.origin}/join/${payload.sessionId}`;
+    const nextJoinUrl = `${window.location.origin}${joinUrlPath(payload.sessionId)}`;
     setJoinUrl(nextJoinUrl);
     setQrCodeUrl(await QRCode.toDataURL(nextJoinUrl, { margin: 1, width: 220 }));
     connectSession('host', payload.sessionId);
@@ -587,7 +615,7 @@ function App() {
     if (!normalizedSessionId) return;
     setSessionError(null);
     setSessionNotice(null);
-    setJoinUrl(`${window.location.origin}/join/${normalizedSessionId}`);
+    setJoinUrl(`${window.location.origin}${joinUrlPath(normalizedSessionId)}`);
     connectSession('guest', normalizedSessionId);
     setPage('session');
   }

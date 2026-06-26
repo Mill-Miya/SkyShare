@@ -75,6 +75,9 @@ This file records implementation work and notable design changes so progress can
 - Changed the mountain silhouette height from screen pixels to angular altitude above the horizon, keeping the fixed design attached to the sky sphere without artificial fade or cutoff.
 - Restored the mountain visual profile to a calmer earlier look while keeping the angular sky-attached behavior.
 - Changed the aurora effect to default OFF and attached it to horizon-relative altitude bands instead of screen-fixed height.
+- Added club-test deployment support for GitHub Pages frontend and Render-style WebSocket/API backend.
+- Added environment-based API/WebSocket URL switching with `VITE_API_BASE_URL` and `VITE_WS_URL`.
+- Added deployment notes, a test checklist, GitHub Pages workflow, Render config, and README entry points.
 - Reduced card-like UI weight for Sky, Targets, Settings notes, and the bottom navigation while keeping guidance panels clear.
 
 ## Ongoing Rule

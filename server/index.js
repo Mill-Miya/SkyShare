@@ -88,6 +88,15 @@ function endSession(sessionId, room, reason) {
 }
 
 const server = http.createServer((request, response) => {
+  if (request.method === 'GET' && (request.url === '/' || request.url === '/health')) {
+    response.writeHead(200, {
+      'content-type': 'application/json',
+      'access-control-allow-origin': '*',
+    });
+    response.end(JSON.stringify({ ok: true, service: 'sorava-session-server' }));
+    return;
+  }
+
   if (request.method === 'POST' && request.url === '/api/session') {
     const sessionId = createSessionId();
     rooms.set(sessionId, {
