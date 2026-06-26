@@ -66,6 +66,7 @@ This file records implementation work and notable design changes so progress can
 - Preserved target-share mode with no selected target by allowing `target:update` to carry an optional `shareMode` field.
 - Added subtle altitude guide lines, zenith label, center altitude readout, and a Settings toggle for altitude guidance.
 - Changed altitude guide lines from flat screen-space lines to curved sky-sphere guide arcs, with zenith shown as a point instead of a horizontal line.
+- Adjusted altitude guide arcs to span the visible Sky view more consistently and increased their alpha slightly for readability.
 - Reduced card-like UI weight for Sky, Targets, Settings notes, and the bottom navigation while keeping guidance panels clear.
 
 ## Ongoing Rule

@@ -131,8 +131,9 @@ function SkyCanvas({
     drawAurora(context, width, height, horizonY, view, nightMode, showAurora);
 
     if (showAltitudeGuide) {
-      const guideColor = nightMode ? 'rgba(255, 92, 74, 0.22)' : 'rgba(190, 223, 242, 0.18)';
-      const labelColor = nightMode ? 'rgba(255, 123, 107, 0.58)' : 'rgba(222, 242, 230, 0.56)';
+      const guideColor = nightMode ? 'rgba(255, 92, 74, 0.28)' : 'rgba(190, 223, 242, 0.26)';
+      const horizonGuideColor = nightMode ? 'rgba(255, 92, 74, 0.16)' : 'rgba(255, 255, 255, 0.14)';
+      const labelColor = nightMode ? 'rgba(255, 123, 107, 0.66)' : 'rgba(222, 242, 230, 0.66)';
       const toRad = (degrees: number) => (degrees * Math.PI) / 180;
       const centerAzRad = toRad(view.centerAzimuthDeg);
       const centerAltRad = toRad(view.centerAltitudeDeg);
@@ -178,28 +179,30 @@ function SkyCanvas({
       context.textAlign = 'left';
       context.textBaseline = 'middle';
       [0, 30, 60].forEach((altitudeDeg) => {
-        const labelPoint = projectAltAz(view.centerAzimuthDeg - horizontalFovDeg * 0.44, altitudeDeg);
-        context.strokeStyle = altitudeDeg === 0 ? 'rgba(255,255,255,0.08)' : guideColor;
+        const baseY = centerY - (altitudeDeg - view.centerAltitudeDeg) * pxPerDeg;
+        if (baseY < -height * 0.35 || baseY > height * 1.35) return;
+        const curveStrength =
+          width *
+          (altitudeDeg === 0 ? 0.025 : 0.045) *
+          Math.max(0.35, Math.cos(toRad(altitudeDeg)));
+        const bendDirection = altitudeDeg >= view.centerAltitudeDeg ? 1 : -1;
+        context.strokeStyle = altitudeDeg === 0 ? horizonGuideColor : guideColor;
         context.beginPath();
-        let started = false;
-        for (let index = 0; index <= 72; index += 1) {
-          const offset = -horizontalFovDeg * 0.62 + (horizontalFovDeg * 1.24 * index) / 72;
-          const point = projectAltAz(view.centerAzimuthDeg + offset, altitudeDeg);
-          if (!point || point.x < -80 || point.x > width + 80 || point.y < -80 || point.y > height + 80) {
-            started = false;
-            continue;
-          }
-          if (!started) {
-            context.moveTo(point.x, point.y);
-            started = true;
+        for (let index = 0; index <= 80; index += 1) {
+          const x = (width * index) / 80;
+          const normalizedX = (x - centerX) / Math.max(centerX, width - centerX);
+          const y = baseY + bendDirection * curveStrength * (normalizedX * normalizedX - 0.42);
+          if (index === 0) {
+            context.moveTo(x, y);
           } else {
-            context.lineTo(point.x, point.y);
+            context.lineTo(x, y);
           }
         }
         context.stroke();
-        if (labelPoint && labelPoint.y > -16 && labelPoint.y < height + 16) {
+        const labelY = baseY - bendDirection * curveStrength * 0.28;
+        if (labelY > -16 && labelY < height + 16) {
           context.fillStyle = labelColor;
-          context.fillText(`${altitudeDeg}°`, Math.max(10, Math.min(width - 42, labelPoint.x)), labelPoint.y - 8);
+          context.fillText(`${altitudeDeg}°`, 12, labelY - 8);
         }
       });
       const zenithPoint = projectAltAz(view.centerAzimuthDeg, 90);
