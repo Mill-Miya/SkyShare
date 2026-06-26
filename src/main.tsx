@@ -344,7 +344,7 @@ function App() {
   const [sheetClosing, setSheetClosing] = useState(false);
   const [guidanceSuppressed, setGuidanceSuppressed] = useState(false);
   const [nightMode, setNightMode] = useState(false);
-  const [showAurora, setShowAurora] = useState(true);
+  const [showAurora, setShowAurora] = useState(false);
   const [showAltitudeGuide, setShowAltitudeGuide] = useState(true);
   const [view, setView] = useState<ViewState>({
     centerAzimuthDeg: 180,

@@ -64,25 +64,36 @@ export function drawAurora(
   nightMode: boolean,
   showAurora: boolean,
 ) {
-  if (!showAurora || horizonY < -height * 0.5 || horizonY > height + 120) return;
+  if (!showAurora || horizonY < -height * 0.8) return;
 
   const alpha = nightMode ? 0.32 : 1;
   context.save();
   context.globalCompositeOperation = 'screen';
   context.filter = 'blur(34px)';
 
-  const baseY = clamp(horizonY - height * 0.08, height * 0.18, height * 0.94);
-  const wash = context.createLinearGradient(0, baseY - height * 0.55, 0, baseY + height * 0.18);
+  const centerX = width / 2;
+  const pxPerDeg = view.zoom;
+  const auroraBaseAltDeg = 6;
+  const auroraTopAltDeg = 34;
+  const baseY = horizonY - auroraBaseAltDeg * pxPerDeg;
+  const topY = horizonY - auroraTopAltDeg * pxPerDeg;
+  if (topY > height + 120 || baseY < -height * 0.45) {
+    context.restore();
+    return;
+  }
+
+  const wash = context.createLinearGradient(0, topY, 0, baseY + 34);
   wash.addColorStop(0, 'rgba(56, 91, 181, 0)');
   wash.addColorStop(0.36, `rgba(36, 176, 132, ${0.018 * alpha})`);
   wash.addColorStop(0.58, `rgba(41, 211, 149, ${0.035 * alpha})`);
   wash.addColorStop(0.78, `rgba(37, 130, 103, ${0.018 * alpha})`);
   wash.addColorStop(1, 'rgba(12, 54, 48, 0)');
   context.fillStyle = wash;
-  context.fillRect(-40, baseY - height * 0.55, width + 80, height * 0.82);
+  context.fillRect(-40, topY, width + 80, baseY - topY + 52);
 
   for (let band = 0; band < 3; band += 1) {
-    const y = baseY - height * (0.08 + band * 0.12);
+    const altitudeDeg = 10 + band * 7;
+    const y = horizonY - altitudeDeg * pxPerDeg;
     const bandGradient = context.createLinearGradient(0, y - 34, 0, y + 44);
     bandGradient.addColorStop(0, 'rgba(83, 99, 220, 0)');
     bandGradient.addColorStop(0.46, `rgba(57, 214, 154, ${(0.018 - band * 0.003) * alpha})`);
@@ -91,7 +102,8 @@ export function drawAurora(
     context.beginPath();
     context.moveTo(-40, y + Math.sin((view.centerAzimuthDeg + band * 20) * 0.04) * 14);
     for (let x = -20; x <= width + 40; x += 64) {
-      const wave = Math.sin(x * 0.012 + view.centerAzimuthDeg * 0.035 + band) * 18;
+      const azimuthDeg = normalizeAzimuth(view.centerAzimuthDeg + (x - centerX) / pxPerDeg);
+      const wave = Math.sin(azimuthDeg * 0.05 + band) * 18 + Math.sin(azimuthDeg * 0.12 + band * 2) * 8;
       context.lineTo(x, y + wave);
     }
     context.lineTo(width + 40, y + 52);
@@ -164,34 +176,30 @@ export function drawGroundAndMountains(
 }
 
 const MOUNTAIN_PROFILE = [
-  { az: 0, height: 2.4 },
-  { az: 7, height: 5.6 },
-  { az: 18, height: 1.9 },
-  { az: 24, height: 4.1 },
-  { az: 43, height: 7.2 },
-  { az: 52, height: 3.0 },
-  { az: 58, height: 4.8 },
-  { az: 76, height: 2.2 },
-  { az: 96, height: 6.8 },
-  { az: 109, height: 1.7 },
-  { az: 117, height: 3.2 },
-  { az: 126, height: 8.0 },
-  { az: 147, height: 3.5 },
-  { az: 155, height: 2.1 },
-  { az: 171, height: 5.4 },
-  { az: 193, height: 1.8 },
-  { az: 204, height: 7.0 },
-  { az: 211, height: 2.7 },
-  { az: 236, height: 4.6 },
-  { az: 252, height: 2.9 },
-  { az: 264, height: 7.4 },
-  { az: 281, height: 2.0 },
-  { az: 291, height: 4.2 },
-  { az: 309, height: 6.1 },
-  { az: 321, height: 2.5 },
-  { az: 337, height: 6.6 },
-  { az: 346, height: 3.1 },
-  { az: 354, height: 5.0 },
+  { az: 0, height: 2.9 },
+  { az: 15, height: 4.0 },
+  { az: 30, height: 2.6 },
+  { az: 45, height: 5.0 },
+  { az: 60, height: 3.4 },
+  { az: 75, height: 4.4 },
+  { az: 90, height: 2.4 },
+  { az: 105, height: 6.0 },
+  { az: 120, height: 3.7 },
+  { az: 135, height: 3.1 },
+  { az: 150, height: 4.9 },
+  { az: 165, height: 2.7 },
+  { az: 180, height: 4.3 },
+  { az: 195, height: 3.6 },
+  { az: 210, height: 5.4 },
+  { az: 225, height: 3.0 },
+  { az: 240, height: 4.1 },
+  { az: 255, height: 2.6 },
+  { az: 270, height: 4.7 },
+  { az: 285, height: 3.3 },
+  { az: 300, height: 3.9 },
+  { az: 315, height: 5.7 },
+  { az: 330, height: 2.9 },
+  { az: 345, height: 4.6 },
 ];
 
 function mountainHeightAtAzimuth(azimuthDeg: number) {

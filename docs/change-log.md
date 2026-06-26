@@ -73,6 +73,8 @@ This file records implementation work and notable design changes so progress can
 - Made the sky-fixed mountain silhouette more angular by reducing chamfering and using sharper profile peaks.
 - Changed mountain peaks and valleys to an uneven azimuth profile so the spacing no longer looks mechanically regular.
 - Changed the mountain silhouette height from screen pixels to angular altitude above the horizon, keeping the fixed design attached to the sky sphere without artificial fade or cutoff.
+- Restored the mountain visual profile to a calmer earlier look while keeping the angular sky-attached behavior.
+- Changed the aurora effect to default OFF and attached it to horizon-relative altitude bands instead of screen-fixed height.
 - Reduced card-like UI weight for Sky, Targets, Settings notes, and the bottom navigation while keeping guidance panels clear.
 
 ## Ongoing Rule
