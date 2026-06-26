@@ -68,6 +68,8 @@ This file records implementation work and notable design changes so progress can
 - Changed altitude guide lines from flat screen-space lines to curved sky-sphere guide arcs, with zenith shown as a point instead of a horizontal line.
 - Adjusted altitude guide arcs to span the visible Sky view more consistently and increased their alpha slightly for readability.
 - Replaced screen-space altitude arcs with true sphere-projected altitude circles so the guide lines stay attached to the sky view.
+- Removed altitude guide lines and kept only the zenith marker to avoid misleading sky overlays.
+- Fixed the mountain silhouette to stay screen-stable while following the horizon vertically.
 - Reduced card-like UI weight for Sky, Targets, Settings notes, and the bottom navigation while keeping guidance panels clear.
 
 ## Ongoing Rule

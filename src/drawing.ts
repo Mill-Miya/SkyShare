@@ -109,8 +109,8 @@ export function drawGroundAndMountains(
   width: number,
   height: number,
   horizonY: number,
-  view: ViewState,
-  pxPerDeg: number,
+  _view: ViewState,
+  _pxPerDeg: number,
 ) {
   if (horizonY <= 0) {
     context.fillStyle = 'rgba(0, 0, 0, 0.68)';
@@ -126,21 +126,20 @@ export function drawGroundAndMountains(
   groundGradient.addColorStop(0.38, 'rgba(0, 0, 0, 0.96)');
   groundGradient.addColorStop(1, 'rgba(0, 0, 0, 0.78)');
 
-  const centerX = width / 2;
-  const sectorWidthDeg = 14;
-  const leftAzimuth = view.centerAzimuthDeg - centerX / pxPerDeg - sectorWidthDeg;
-  const rightAzimuth = view.centerAzimuthDeg + centerX / pxPerDeg + sectorWidthDeg;
-  const startIndex = Math.floor(leftAzimuth / sectorWidthDeg);
-  const endIndex = Math.ceil(rightAzimuth / sectorWidthDeg);
-  const ridgePoints: Array<{ x: number; y: number }> = [];
-
-  for (let index = startIndex; index <= endIndex; index += 1) {
-    const azimuthDeg = index * sectorWidthDeg;
-    ridgePoints.push({
-      x: centerX + shortestAzimuthDelta(normalizeAzimuth(azimuthDeg), view.centerAzimuthDeg) * pxPerDeg,
-      y: horizonY - mountainHeightForIndex(index),
-    });
-  }
+  const ridgePoints = [
+    { x: 0, height: 18 },
+    { x: width * 0.08, height: 26 },
+    { x: width * 0.19, height: 20 },
+    { x: width * 0.31, height: 34 },
+    { x: width * 0.45, height: 24 },
+    { x: width * 0.58, height: 31 },
+    { x: width * 0.73, height: 22 },
+    { x: width * 0.86, height: 36 },
+    { x: width, height: 25 },
+  ].map((point) => ({
+    x: point.x,
+    y: horizonY - point.height,
+  }));
 
   if (ridgePoints.length < 2) return;
 
@@ -219,11 +218,6 @@ export function drawTargetObject(
     context.stroke();
   }
   context.restore();
-}
-
-function mountainHeightForIndex(index: number) {
-  const wave = Math.sin(index * 1.43) * 0.44 + Math.sin(index * 0.61 + 0.8) * 0.34 + Math.sin(index * 2.37) * 0.18;
-  return Math.max(0, wave) * 46;
 }
 
 function drawMoonPhase(

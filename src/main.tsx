@@ -132,7 +132,6 @@ function SkyCanvas({
 
     if (showAltitudeGuide) {
       const guideColor = nightMode ? 'rgba(255, 92, 74, 0.28)' : 'rgba(190, 223, 242, 0.26)';
-      const horizonGuideColor = nightMode ? 'rgba(255, 92, 74, 0.16)' : 'rgba(255, 255, 255, 0.14)';
       const labelColor = nightMode ? 'rgba(255, 123, 107, 0.66)' : 'rgba(222, 242, 230, 0.66)';
       const toRad = (degrees: number) => (degrees * Math.PI) / 180;
       const centerAzRad = toRad(view.centerAzimuthDeg);
@@ -178,44 +177,6 @@ function SkyCanvas({
       context.font = '500 11px system-ui, sans-serif';
       context.textAlign = 'left';
       context.textBaseline = 'middle';
-      [0, 30, 60].forEach((altitudeDeg) => {
-        context.strokeStyle = altitudeDeg === 0 ? horizonGuideColor : guideColor;
-        context.beginPath();
-        const visiblePoints: { x: number; y: number }[] = [];
-        let segmentStarted = false;
-        const samples = 180;
-        for (let index = 0; index <= samples; index += 1) {
-          const azimuthDeg = (360 * index) / samples;
-          const point = projectAltAz(azimuthDeg, altitudeDeg);
-          const visible =
-            point &&
-            point.x >= -width * 0.12 &&
-            point.x <= width * 1.12 &&
-            point.y >= -height * 0.12 &&
-            point.y <= height * 1.12;
-
-          if (!visible) {
-            context.stroke();
-            context.beginPath();
-            segmentStarted = false;
-            continue;
-          }
-
-          visiblePoints.push(point);
-          if (!segmentStarted) {
-            context.moveTo(point.x, point.y);
-            segmentStarted = true;
-          } else {
-            context.lineTo(point.x, point.y);
-          }
-        }
-        context.stroke();
-        const labelPoint = visiblePoints.find((point) => point.x >= 8 && point.y >= 12 && point.y <= height - 12);
-        if (labelPoint) {
-          context.fillStyle = labelColor;
-          context.fillText(`${altitudeDeg}°`, Math.max(12, labelPoint.x), labelPoint.y - 8);
-        }
-      });
       const zenithPoint = projectAltAz(view.centerAzimuthDeg, 90);
       if (zenithPoint && zenithPoint.y > -22 && zenithPoint.y < height + 22) {
         context.setLineDash([]);
@@ -257,14 +218,6 @@ function SkyCanvas({
     context.moveTo(centerX, centerY - 9);
     context.lineTo(centerX, centerY + 9);
     context.stroke();
-
-    if (showAltitudeGuide) {
-      context.fillStyle = nightMode ? 'rgba(255, 123, 107, 0.56)' : 'rgba(222, 242, 230, 0.58)';
-      context.font = '500 11px system-ui, sans-serif';
-      context.textAlign = 'center';
-      context.textBaseline = 'top';
-      context.fillText(`高度 ${Math.round(view.centerAltitudeDeg)}°`, centerX, centerY + 12);
-    }
 
     if (debug) {
       context.fillStyle = nightMode ? 'rgba(255, 86, 70, 0.78)' : 'rgba(255, 248, 220, 0.7)';
@@ -1411,8 +1364,8 @@ function SettingsPage({
 
       <label className="toggle-row">
         <span>
-          <strong>高度目安</strong>
-          <small>空の高さを薄く表示します</small>
+          <strong>天頂表示</strong>
+          <small>真上の位置だけを控えめに表示します</small>
         </span>
         <input
           type="checkbox"
