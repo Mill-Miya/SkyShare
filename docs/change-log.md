@@ -65,6 +65,7 @@ This file records implementation work and notable design changes so progress can
 - Separated Host selection from sharing behavior so target sharing with no selected target sends `targetId: null` while pointer sharing remains available.
 - Preserved target-share mode with no selected target by allowing `target:update` to carry an optional `shareMode` field.
 - Added subtle altitude guide lines, zenith label, center altitude readout, and a Settings toggle for altitude guidance.
+- Changed altitude guide lines from flat screen-space lines to curved sky-sphere guide arcs, with zenith shown as a point instead of a horizontal line.
 - Reduced card-like UI weight for Sky, Targets, Settings notes, and the bottom navigation while keeping guidance panels clear.
 
 ## Ongoing Rule

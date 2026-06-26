@@ -133,23 +133,86 @@ function SkyCanvas({
     if (showAltitudeGuide) {
       const guideColor = nightMode ? 'rgba(255, 92, 74, 0.22)' : 'rgba(190, 223, 242, 0.18)';
       const labelColor = nightMode ? 'rgba(255, 123, 107, 0.58)' : 'rgba(222, 242, 230, 0.56)';
+      const toRad = (degrees: number) => (degrees * Math.PI) / 180;
+      const centerAzRad = toRad(view.centerAzimuthDeg);
+      const centerAltRad = toRad(view.centerAltitudeDeg);
+      const centerVector = {
+        x: Math.sin(centerAzRad) * Math.cos(centerAltRad),
+        y: Math.cos(centerAzRad) * Math.cos(centerAltRad),
+        z: Math.sin(centerAltRad),
+      };
+      const rightVector = {
+        x: Math.cos(centerAzRad),
+        y: -Math.sin(centerAzRad),
+        z: 0,
+      };
+      const upVector = {
+        x: rightVector.y * centerVector.z - rightVector.z * centerVector.y,
+        y: rightVector.z * centerVector.x - rightVector.x * centerVector.z,
+        z: rightVector.x * centerVector.y - rightVector.y * centerVector.x,
+      };
+      const focalLength = width / (2 * Math.tan(toRad(horizontalFovDeg) / 2));
+      const projectAltAz = (azimuthDeg: number, altitudeDeg: number) => {
+        const azimuthRad = toRad(normalizeAzimuth(azimuthDeg));
+        const altitudeRad = toRad(altitudeDeg);
+        const vector = {
+          x: Math.sin(azimuthRad) * Math.cos(altitudeRad),
+          y: Math.cos(azimuthRad) * Math.cos(altitudeRad),
+          z: Math.sin(altitudeRad),
+        };
+        const depth =
+          vector.x * centerVector.x + vector.y * centerVector.y + vector.z * centerVector.z;
+        if (depth <= 0.05) return null;
+        const right = vector.x * rightVector.x + vector.y * rightVector.y + vector.z * rightVector.z;
+        const up = vector.x * upVector.x + vector.y * upVector.y + vector.z * upVector.z;
+        return {
+          x: centerX + (right / depth) * focalLength,
+          y: centerY - (up / depth) * focalLength,
+        };
+      };
+
       context.save();
       context.setLineDash([5, 7]);
       context.lineWidth = 1;
       context.font = '500 11px system-ui, sans-serif';
       context.textAlign = 'left';
       context.textBaseline = 'middle';
-      [0, 30, 60, 90].forEach((altitudeDeg) => {
-        const y = centerY - (altitudeDeg - view.centerAltitudeDeg) * pxPerDeg;
-        if (y < -16 || y > height + 16) return;
+      [0, 30, 60].forEach((altitudeDeg) => {
+        const labelPoint = projectAltAz(view.centerAzimuthDeg - horizontalFovDeg * 0.44, altitudeDeg);
         context.strokeStyle = altitudeDeg === 0 ? 'rgba(255,255,255,0.08)' : guideColor;
         context.beginPath();
-        context.moveTo(0, y);
-        context.lineTo(width, y);
+        let started = false;
+        for (let index = 0; index <= 72; index += 1) {
+          const offset = -horizontalFovDeg * 0.62 + (horizontalFovDeg * 1.24 * index) / 72;
+          const point = projectAltAz(view.centerAzimuthDeg + offset, altitudeDeg);
+          if (!point || point.x < -80 || point.x > width + 80 || point.y < -80 || point.y > height + 80) {
+            started = false;
+            continue;
+          }
+          if (!started) {
+            context.moveTo(point.x, point.y);
+            started = true;
+          } else {
+            context.lineTo(point.x, point.y);
+          }
+        }
+        context.stroke();
+        if (labelPoint && labelPoint.y > -16 && labelPoint.y < height + 16) {
+          context.fillStyle = labelColor;
+          context.fillText(`${altitudeDeg}°`, Math.max(10, Math.min(width - 42, labelPoint.x)), labelPoint.y - 8);
+        }
+      });
+      const zenithPoint = projectAltAz(view.centerAzimuthDeg, 90);
+      if (zenithPoint && zenithPoint.y > -22 && zenithPoint.y < height + 22) {
+        context.setLineDash([]);
+        context.strokeStyle = guideColor;
+        context.beginPath();
+        context.arc(zenithPoint.x, zenithPoint.y, 5, 0, Math.PI * 2);
         context.stroke();
         context.fillStyle = labelColor;
-        context.fillText(altitudeDeg === 90 ? '天頂' : `${altitudeDeg}°`, 10, y - 8);
-      });
+        context.textAlign = 'center';
+        context.fillText('天頂', zenithPoint.x, zenithPoint.y - 16);
+      }
       context.restore();
     }
 
