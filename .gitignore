@@ -3,3 +3,4 @@ dist/
 *.tsbuildinfo
 vite.config.d.ts
 vite-dev.*.log
+session-server.*.log
