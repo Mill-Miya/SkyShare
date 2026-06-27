@@ -90,6 +90,7 @@ This file records implementation work and notable design changes so progress can
 - Changed Sensor Mode altitude to treat screen-up as zenith and added a guard that ignores sudden 120-degree azimuth flips from unstable device orientation events.
 - Hid sensor debug controls from normal Settings, made inverted altitude the default internal mapping, and increased bottom-sheet scrollable height/padding so sheet contents can be reached on phones.
 - Moved sensor/debug data behind a Settings passcode panel, removed normal Settings guidance text for follow mode, and reset the default altitude inversion again for the current device behavior.
+- Fixed Settings bottom sheet sizing so the admin Sensor Probe can scroll to the deviceorientation fields on small phone screens.
 
 ## Ongoing Rule
 
