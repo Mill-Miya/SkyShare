@@ -64,25 +64,36 @@ export function drawAurora(
   nightMode: boolean,
   showAurora: boolean,
 ) {
-  if (!showAurora || horizonY < -height * 0.5 || horizonY > height + 120) return;
+  if (!showAurora || horizonY < -height * 0.8) return;
 
   const alpha = nightMode ? 0.32 : 1;
   context.save();
   context.globalCompositeOperation = 'screen';
   context.filter = 'blur(34px)';
 
-  const baseY = clamp(horizonY - height * 0.08, height * 0.18, height * 0.94);
-  const wash = context.createLinearGradient(0, baseY - height * 0.55, 0, baseY + height * 0.18);
+  const centerX = width / 2;
+  const pxPerDeg = view.zoom;
+  const auroraBaseAltDeg = 6;
+  const auroraTopAltDeg = 34;
+  const baseY = horizonY - auroraBaseAltDeg * pxPerDeg;
+  const topY = horizonY - auroraTopAltDeg * pxPerDeg;
+  if (topY > height + 120 || baseY < -height * 0.45) {
+    context.restore();
+    return;
+  }
+
+  const wash = context.createLinearGradient(0, topY, 0, baseY + 34);
   wash.addColorStop(0, 'rgba(56, 91, 181, 0)');
   wash.addColorStop(0.36, `rgba(36, 176, 132, ${0.018 * alpha})`);
   wash.addColorStop(0.58, `rgba(41, 211, 149, ${0.035 * alpha})`);
   wash.addColorStop(0.78, `rgba(37, 130, 103, ${0.018 * alpha})`);
   wash.addColorStop(1, 'rgba(12, 54, 48, 0)');
   context.fillStyle = wash;
-  context.fillRect(-40, baseY - height * 0.55, width + 80, height * 0.82);
+  context.fillRect(-40, topY, width + 80, baseY - topY + 52);
 
   for (let band = 0; band < 3; band += 1) {
-    const y = baseY - height * (0.08 + band * 0.12);
+    const altitudeDeg = 10 + band * 7;
+    const y = horizonY - altitudeDeg * pxPerDeg;
     const bandGradient = context.createLinearGradient(0, y - 34, 0, y + 44);
     bandGradient.addColorStop(0, 'rgba(83, 99, 220, 0)');
     bandGradient.addColorStop(0.46, `rgba(57, 214, 154, ${(0.018 - band * 0.003) * alpha})`);
@@ -91,7 +102,8 @@ export function drawAurora(
     context.beginPath();
     context.moveTo(-40, y + Math.sin((view.centerAzimuthDeg + band * 20) * 0.04) * 14);
     for (let x = -20; x <= width + 40; x += 64) {
-      const wave = Math.sin(x * 0.012 + view.centerAzimuthDeg * 0.035 + band) * 18;
+      const azimuthDeg = normalizeAzimuth(view.centerAzimuthDeg + (x - centerX) / pxPerDeg);
+      const wave = Math.sin(azimuthDeg * 0.05 + band) * 18 + Math.sin(azimuthDeg * 0.12 + band * 2) * 8;
       context.lineTo(x, y + wave);
     }
     context.lineTo(width + 40, y + 52);
@@ -118,27 +130,22 @@ export function drawGroundAndMountains(
     return;
   }
 
-  if (horizonY > height + 120) return;
-
-  const visibleHorizonY = Math.min(horizonY, height);
-  const groundGradient = context.createLinearGradient(0, visibleHorizonY, 0, height);
+  const mountainBaseY = horizonY;
+  const gradientTopY = Math.max(0, Math.min(mountainBaseY, height - 1));
+  const groundGradient = context.createLinearGradient(0, gradientTopY, 0, height);
   groundGradient.addColorStop(0, 'rgba(0, 0, 0, 1)');
   groundGradient.addColorStop(0.38, 'rgba(0, 0, 0, 0.96)');
   groundGradient.addColorStop(1, 'rgba(0, 0, 0, 0.78)');
 
   const centerX = width / 2;
-  const sectorWidthDeg = 14;
-  const leftAzimuth = view.centerAzimuthDeg - centerX / pxPerDeg - sectorWidthDeg;
-  const rightAzimuth = view.centerAzimuthDeg + centerX / pxPerDeg + sectorWidthDeg;
-  const startIndex = Math.floor(leftAzimuth / sectorWidthDeg);
-  const endIndex = Math.ceil(rightAzimuth / sectorWidthDeg);
+  const stepPx = Math.max(6, width / 90);
   const ridgePoints: Array<{ x: number; y: number }> = [];
 
-  for (let index = startIndex; index <= endIndex; index += 1) {
-    const azimuthDeg = index * sectorWidthDeg;
+  for (let x = -stepPx; x <= width + stepPx; x += stepPx) {
+    const azimuthDeg = normalizeAzimuth(view.centerAzimuthDeg + (x - centerX) / pxPerDeg);
     ridgePoints.push({
-      x: centerX + shortestAzimuthDelta(normalizeAzimuth(azimuthDeg), view.centerAzimuthDeg) * pxPerDeg,
-      y: horizonY - mountainHeightForIndex(index),
+      x,
+      y: mountainBaseY - mountainHeightAtAzimuth(azimuthDeg) * pxPerDeg,
     });
   }
 
@@ -146,7 +153,7 @@ export function drawGroundAndMountains(
 
   context.beginPath();
   context.moveTo(0, height);
-  context.lineTo(0, horizonY);
+  context.lineTo(0, mountainBaseY);
   for (let index = 0; index < ridgePoints.length; index += 1) {
     const current = ridgePoints[index];
     if (index === 0 || index === ridgePoints.length - 1) {
@@ -156,16 +163,58 @@ export function drawGroundAndMountains(
 
     const previous = ridgePoints[index - 1];
     const next = ridgePoints[index + 1];
-    const chamfer = 0.1;
+    const chamfer = 0.035;
     context.lineTo(current.x + (previous.x - current.x) * chamfer, current.y + (previous.y - current.y) * chamfer);
     context.lineTo(current.x + (next.x - current.x) * chamfer, current.y + (next.y - current.y) * chamfer);
   }
 
-  context.lineTo(width, horizonY);
+  context.lineTo(width, mountainBaseY);
   context.lineTo(width, height);
   context.closePath();
   context.fillStyle = groundGradient;
   context.fill();
+}
+
+const MOUNTAIN_PROFILE = [
+  { az: 0, height: 2.9 },
+  { az: 15, height: 4.0 },
+  { az: 30, height: 2.6 },
+  { az: 45, height: 5.0 },
+  { az: 60, height: 3.4 },
+  { az: 75, height: 4.4 },
+  { az: 90, height: 2.4 },
+  { az: 105, height: 6.0 },
+  { az: 120, height: 3.7 },
+  { az: 135, height: 3.1 },
+  { az: 150, height: 4.9 },
+  { az: 165, height: 2.7 },
+  { az: 180, height: 4.3 },
+  { az: 195, height: 3.6 },
+  { az: 210, height: 5.4 },
+  { az: 225, height: 3.0 },
+  { az: 240, height: 4.1 },
+  { az: 255, height: 2.6 },
+  { az: 270, height: 4.7 },
+  { az: 285, height: 3.3 },
+  { az: 300, height: 3.9 },
+  { az: 315, height: 5.7 },
+  { az: 330, height: 2.9 },
+  { az: 345, height: 4.6 },
+];
+
+function mountainHeightAtAzimuth(azimuthDeg: number) {
+  const azimuth = normalizeAzimuth(azimuthDeg);
+  const currentIndex = MOUNTAIN_PROFILE.findIndex((point, index) => {
+    const next = MOUNTAIN_PROFILE[index + 1];
+    return next ? azimuth >= point.az && azimuth < next.az : false;
+  });
+  const index = currentIndex >= 0 ? currentIndex : MOUNTAIN_PROFILE.length - 1;
+  const current = MOUNTAIN_PROFILE[index];
+  const next = MOUNTAIN_PROFILE[(index + 1) % MOUNTAIN_PROFILE.length];
+  const span = next.az > current.az ? next.az - current.az : next.az + 360 - current.az;
+  const offset = azimuth >= current.az ? azimuth - current.az : azimuth + 360 - current.az;
+  const t = offset / span;
+  return current.height + (next.height - current.height) * t;
 }
 
 export function drawTargetObject(
@@ -219,11 +268,6 @@ export function drawTargetObject(
     context.stroke();
   }
   context.restore();
-}
-
-function mountainHeightForIndex(index: number) {
-  const wave = Math.sin(index * 1.43) * 0.44 + Math.sin(index * 0.61 + 0.8) * 0.34 + Math.sin(index * 2.37) * 0.18;
-  return Math.max(0, wave) * 46;
 }
 
 function drawMoonPhase(
