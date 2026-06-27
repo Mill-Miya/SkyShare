@@ -138,6 +138,66 @@ input {
   background: rgba(0, 0, 0, 0.36);
 }
 
+.sensor-follow-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  min-width: 58px;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid rgba(244, 241, 223, 0.18);
+  border-radius: 999px;
+  color: rgba(244, 241, 223, 0.86);
+  background: rgba(0, 0, 0, 0.34);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.sensor-follow-button.active {
+  border-color: rgba(143, 220, 185, 0.46);
+  color: #bff7c8;
+  background: rgba(11, 54, 39, 0.58);
+}
+
+.sensor-follow-button:disabled {
+  color: rgba(244, 241, 223, 0.38);
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.night-mode .sensor-follow-button {
+  border-color: rgba(255, 88, 68, 0.24);
+  color: rgba(255, 123, 107, 0.86);
+  background: rgba(18, 0, 0, 0.48);
+}
+
+.night-mode .sensor-follow-button.active {
+  border-color: rgba(255, 123, 107, 0.46);
+  color: #ff9a8d;
+  background: rgba(80, 0, 0, 0.56);
+}
+
+.sensor-notice {
+  position: absolute;
+  top: 50px;
+  right: 10px;
+  max-width: min(220px, calc(100% - 20px));
+  padding: 7px 9px;
+  border: 1px solid rgba(255, 211, 110, 0.2);
+  border-radius: 8px;
+  color: #ffd36e;
+  background: rgba(0, 0, 0, 0.42);
+  font-size: 12px;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+.night-mode .sensor-notice {
+  border-color: rgba(255, 123, 107, 0.24);
+  color: #ff9a8d;
+  background: rgba(18, 0, 0, 0.58);
+}
+
 .guidance-panel {
   position: absolute;
   left: 50%;
