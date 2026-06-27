@@ -160,9 +160,9 @@ function estimateSensorView(event: DeviceOrientationEvent) {
       : alpha !== null
         ? normalizeAzimuth(360 - alpha)
         : null;
-  // Raw altitude is based on the screen normal. Some devices invert this axis,
-  // so the admin panel keeps a manual fallback without exposing it to guests.
-  const estimatedAltitudeDeg = beta !== null ? clamp(Math.abs(beta) - 90, -90, 90) : null;
+  // In portrait use, beta is around 90 near the horizon and approaches 0
+  // as the screen faces upward, so 90 - abs(beta) gives a practical altitude.
+  const estimatedAltitudeDeg = beta !== null ? clamp(90 - Math.abs(beta), -90, 90) : null;
 
   return { estimatedAzimuthDeg, estimatedAltitudeDeg };
 }
@@ -359,12 +359,14 @@ function SkyCanvas({
 
       drawTargetObject(context, target, position, x, y, selected, nightMode);
 
+      const nearSightLine =
+        position.altitudeDeg >= 0 &&
+        Math.abs(shortestAzimuthDelta(position.azimuthDeg, view.centerAzimuthDeg)) <= 5 &&
+        Math.abs(position.altitudeDeg - view.centerAltitudeDeg) <= 5;
       const showLabel =
         selected ||
         debug ||
-        target?.kind === 'moon' ||
-        target?.kind === 'planet' ||
-        (target?.recommended && position.altitudeDeg >= 0);
+        nearSightLine;
       if (!showLabel) return;
 
       context.fillStyle = selected
@@ -988,7 +990,7 @@ function App() {
         const highAltitude = Math.abs(previous.altitudeDeg) > 78 || Math.abs(correctedAltitudeDeg) > 78;
         const azimuthDeltaDeg = shortestAzimuthDelta(estimatedAzimuthDeg, previous.azimuthDeg);
         const suspiciousAzimuthFlip =
-          Math.abs(azimuthDeltaDeg) > 120 && Math.abs(correctedAltitudeDeg - previous.altitudeDeg) < 35;
+          highAltitude && Math.abs(azimuthDeltaDeg) > 120 && Math.abs(correctedAltitudeDeg - previous.altitudeDeg) < 35;
         const azimuthSmoothing = highAltitude ? 0.16 : 0.22;
         const altitudeSmoothing = 0.24;
         const azimuthStep = limitedSensorStep(
@@ -1350,6 +1352,7 @@ function TargetsPage({
     .filter(({ target }) => Boolean(target))
     .filter(({ position, target }) => {
       if (!target) return false;
+      if (target.kind === 'landmark' && target.id !== 'landmark_polaris') return false;
       if (category === 'recommended') {
         return Boolean(target.recommended) && position.altitudeDeg >= 5;
       }
@@ -1404,7 +1407,6 @@ function TargetsPage({
             <span>方位 {Math.round(position.azimuthDeg)}°</span>
             <span>高度 {Math.round(position.altitudeDeg)}°</span>
             <span className="target-status">{getAltitudeStatusLabel(status)}</span>
-            {target?.descriptionJa && <small>{target.descriptionJa}</small>}
           </button>
         );
       })}

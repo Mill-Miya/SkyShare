@@ -589,7 +589,7 @@ input {
 
 .target-row {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 4px 9px;
   min-height: 58px;
   padding: 10px 4px;
@@ -638,11 +638,14 @@ input {
 }
 
 .target-row strong {
-  grid-column: 2 / -1;
+  grid-column: 2 / 3;
+  min-width: 0;
   font-size: 15px;
+  overflow-wrap: anywhere;
 }
 
-.target-row span:not(.target-color) {
+.target-row span:not(.target-color):not(.target-status) {
+  grid-column: 2 / -1;
   color: rgba(244, 241, 223, 0.72);
   font-size: 12px;
 }
@@ -655,8 +658,11 @@ input {
 }
 
 .target-status {
+  grid-column: 3 / 4;
+  grid-row: 1;
   font-weight: 800;
   text-align: right;
+  white-space: nowrap;
 }
 
 .target-empty {
