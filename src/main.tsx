@@ -40,9 +40,7 @@ const SHEET_ANIMATION_MS = 220;
 const VIEW_ANIMATION_MS = 720;
 const DEFAULT_PUBLIC_API_BASE_URL = 'https://skyshare-nhcb.onrender.com';
 const DEFAULT_PUBLIC_WS_URL = 'wss://skyshare-nhcb.onrender.com/ws';
-const SENSOR_ALTITUDE_OFFSET_KEY = 'sorava.sensor.altitudeOffsetDeg.v2';
 const SENSOR_INVERT_ALTITUDE_KEY = 'sorava.sensor.invertAltitude';
-const DEFAULT_SENSOR_ALTITUDE_OFFSET_DEG = 0;
 
 function isGitHubPagesHost() {
   return window.location.hostname === 'mill-miya.github.io';
@@ -89,17 +87,6 @@ function getJoinSessionId() {
 
 function prefersReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
-
-function readStoredNumber(key: string, fallback: number) {
-  try {
-    const storedValue = window.localStorage.getItem(key);
-    if (storedValue === null) return fallback;
-    const parsed = Number(storedValue);
-    return Number.isFinite(parsed) ? parsed : fallback;
-  } catch {
-    return fallback;
-  }
 }
 
 function readStoredBoolean(key: string, fallback: boolean) {
@@ -154,42 +141,15 @@ function initialSensorProbe(): SensorProbeState {
   };
 }
 
-function estimateTiltCompensatedHeading(alpha: number, beta: number | null, gamma: number | null) {
-  if (beta === null || gamma === null) return normalizeAzimuth(360 - alpha);
-
-  const x = (beta * Math.PI) / 180;
-  const y = (gamma * Math.PI) / 180;
-  const z = (alpha * Math.PI) / 180;
-  const cosX = Math.cos(x);
-  const sinX = Math.sin(x);
-  const cosY = Math.cos(y);
-  const sinY = Math.sin(y);
-  const cosZ = Math.cos(z);
-  const sinZ = Math.sin(z);
-  const vectorX = -cosZ * sinY - sinZ * sinX * cosY;
-  const vectorY = -sinZ * sinY + cosZ * sinX * cosY;
-
-  if (Math.hypot(vectorX, vectorY) < 0.001) return normalizeAzimuth(360 - alpha);
-
-  let headingRad = Math.atan(vectorX / vectorY);
-  if (vectorY < 0) {
-    headingRad += Math.PI;
-  } else if (vectorX < 0) {
-    headingRad += Math.PI * 2;
-  }
-  return normalizeAzimuth((headingRad * 180) / Math.PI);
-}
-
 function estimateSensorView(event: DeviceOrientationEvent) {
   const alpha = typeof event.alpha === 'number' ? event.alpha : null;
   const beta = typeof event.beta === 'number' ? event.beta : null;
-  const gamma = typeof event.gamma === 'number' ? event.gamma : null;
   const webkitHeading = (event as DeviceOrientationEvent & { webkitCompassHeading?: number }).webkitCompassHeading;
   const estimatedAzimuthDeg =
     typeof webkitHeading === 'number'
       ? normalizeAzimuth(webkitHeading)
       : alpha !== null
-        ? estimateTiltCompensatedHeading(alpha, beta, gamma)
+        ? normalizeAzimuth(360 - alpha)
         : null;
   // In portrait use, beta works as the front-back tilt: horizon is near 0,
   // pointing upward increases beta, and pointing downward decreases it.
@@ -503,9 +463,6 @@ function App() {
   const [sensorModeEnabled, setSensorModeEnabled] = useState(false);
   const [sensorProbe, setSensorProbe] = useState<SensorProbeState>(() => initialSensorProbe());
   const [sensorNotice, setSensorNotice] = useState<string | null>(null);
-  const [sensorAltitudeOffsetDeg, setSensorAltitudeOffsetDeg] = useState(() =>
-    clamp(readStoredNumber(SENSOR_ALTITUDE_OFFSET_KEY, DEFAULT_SENSOR_ALTITUDE_OFFSET_DEG), -90, 90),
-  );
   const [invertSensorAltitude, setInvertSensorAltitude] = useState(() =>
     readStoredBoolean(SENSOR_INVERT_ALTITUDE_KEY, false),
   );
@@ -527,14 +484,6 @@ function App() {
   const lastAbsoluteSensorEventAtRef = useRef(0);
 
   const debug = useMemo(() => new URLSearchParams(window.location.search).get('debug') === '1', []);
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(SENSOR_ALTITUDE_OFFSET_KEY, sensorAltitudeOffsetDeg.toFixed(3));
-    } catch {
-      // Calibration still works for the current page even if storage is unavailable.
-    }
-  }, [sensorAltitudeOffsetDeg]);
 
   useEffect(() => {
     try {
@@ -567,21 +516,6 @@ function App() {
       window.clearTimeout(reconnectTimerRef.current);
       reconnectTimerRef.current = null;
     }
-  }
-
-  function calibrateSensorHorizon() {
-    const rawAltitudeDeg = sensorProbe.rawEstimatedAltitudeDeg;
-    if (rawAltitudeDeg === null) {
-      setSensorNotice('センサー値待ち');
-      window.setTimeout(() => setSensorNotice(null), 2200);
-      return;
-    }
-
-    const nextOffsetDeg = clamp(rawAltitudeDeg, -90, 90);
-    setSensorAltitudeOffsetDeg(nextOffsetDeg);
-    smoothedSensorViewRef.current = null;
-    setSensorNotice('水平に合わせました');
-    window.setTimeout(() => setSensorNotice(null), 2200);
   }
 
   async function requestSensorPermission() {
@@ -999,7 +933,7 @@ function App() {
       } else if (now - lastAbsoluteSensorEventAtRef.current < 1000) {
         return;
       }
-      if (now - lastSensorEventAtRef.current < 50) {
+      if (now - lastSensorEventAtRef.current < 33) {
         return;
       }
       lastSensorEventAtRef.current = now;
@@ -1008,11 +942,7 @@ function App() {
       const correctedAltitudeDeg =
         rawEstimatedAltitudeDeg === null
           ? null
-          : clamp(
-              (invertSensorAltitude ? -1 : 1) * (rawEstimatedAltitudeDeg - sensorAltitudeOffsetDeg),
-              -90,
-              90,
-            );
+          : clamp((invertSensorAltitude ? -1 : 1) * rawEstimatedAltitudeDeg, -90, 90);
       const alpha = typeof event.alpha === 'number' ? event.alpha : null;
       const beta = typeof event.beta === 'number' ? event.beta : null;
       const gamma = typeof event.gamma === 'number' ? event.gamma : null;
@@ -1038,15 +968,15 @@ function App() {
           azimuthDeg: current.centerAzimuthDeg,
           altitudeDeg: current.centerAltitudeDeg,
         };
-        const highAltitude = Math.abs(previous.altitudeDeg) > 72 || Math.abs(correctedAltitudeDeg) > 72;
-        const azimuthSmoothing = highAltitude ? 0.035 : 0.075;
-        const altitudeSmoothing = 0.1;
+        const highAltitude = Math.abs(previous.altitudeDeg) > 78 || Math.abs(correctedAltitudeDeg) > 78;
+        const azimuthSmoothing = highAltitude ? 0.16 : 0.22;
+        const altitudeSmoothing = 0.24;
         const azimuthStep = limitedSensorStep(
           shortestAzimuthDelta(estimatedAzimuthDeg, previous.azimuthDeg),
           azimuthSmoothing,
-          highAltitude ? 2.4 : 4.5,
+          highAltitude ? 9 : 14,
         );
-        const altitudeStep = limitedSensorStep(correctedAltitudeDeg - previous.altitudeDeg, altitudeSmoothing, 3.6);
+        const altitudeStep = limitedSensorStep(correctedAltitudeDeg - previous.altitudeDeg, altitudeSmoothing, 12);
         const nextAzimuthDeg = normalizeAzimuth(
           previous.azimuthDeg + azimuthStep,
         );
@@ -1069,7 +999,7 @@ function App() {
       window.removeEventListener('deviceorientation', handleRelativeOrientation, true);
       window.removeEventListener('deviceorientationabsolute', handleAbsoluteOrientation, true);
     };
-  }, [invertSensorAltitude, sensorAltitudeOffsetDeg, sensorModeEnabled, sensorProbe.permissionState]);
+  }, [invertSensorAltitude, sensorModeEnabled, sensorProbe.permissionState]);
 
   useEffect(() => {
     if (sessionRole !== 'host' || shareMode !== 'target') return;
@@ -1248,14 +1178,12 @@ function App() {
                 showAurora={showAurora}
                 showAltitudeGuide={showAltitudeGuide}
                 sensorProbe={sensorProbe}
-                sensorAltitudeOffsetDeg={sensorAltitudeOffsetDeg}
                 invertSensorAltitude={invertSensorAltitude}
                 canRequestSensorPermission={canRequestDeviceOrientationPermission()}
                 onNightModeChange={setNightMode}
                 onShowAuroraChange={setShowAurora}
                 onShowAltitudeGuideChange={setShowAltitudeGuide}
                 onRequestSensorPermission={requestSensorPermission}
-                onCalibrateSensorHorizon={calibrateSensorHorizon}
                 onInvertSensorAltitudeChange={setInvertSensorAltitude}
               />
             )}
@@ -1705,28 +1633,24 @@ function SettingsPage({
   showAurora,
   showAltitudeGuide,
   sensorProbe,
-  sensorAltitudeOffsetDeg,
   invertSensorAltitude,
   canRequestSensorPermission,
   onNightModeChange,
   onShowAuroraChange,
   onShowAltitudeGuideChange,
   onRequestSensorPermission,
-  onCalibrateSensorHorizon,
   onInvertSensorAltitudeChange,
 }: {
   nightMode: boolean;
   showAurora: boolean;
   showAltitudeGuide: boolean;
   sensorProbe: SensorProbeState;
-  sensorAltitudeOffsetDeg: number;
   invertSensorAltitude: boolean;
   canRequestSensorPermission: boolean;
   onNightModeChange: (enabled: boolean) => void;
   onShowAuroraChange: (enabled: boolean) => void;
   onShowAltitudeGuideChange: (enabled: boolean) => void;
   onRequestSensorPermission: () => Promise<boolean>;
-  onCalibrateSensorHorizon: () => void;
   onInvertSensorAltitudeChange: (enabled: boolean) => void;
 }) {
   const formatSensorValue = (value: number | null) => (value === null ? '--' : value.toFixed(1));
@@ -1776,10 +1700,6 @@ function SettingsPage({
           センサーを許可
         </button>
       )}
-
-      <button type="button" className="sensor-permission-button" onClick={onCalibrateSensorHorizon}>
-        水平に合わせる
-      </button>
 
       <label className="toggle-row">
         <span>
@@ -1831,10 +1751,6 @@ function SettingsPage({
           <strong>{formatSensorValue(sensorProbe.rawEstimatedAltitudeDeg)}°</strong>
         </div>
         <div>
-          <span>高度offset</span>
-          <strong>{formatSensorValue(sensorAltitudeOffsetDeg)}°</strong>
-        </div>
-        <div>
           <span>final高度</span>
           <strong>{formatSensorValue(sensorProbe.finalEstimatedAltitudeDeg)}°</strong>
         </div>
@@ -1845,7 +1761,7 @@ function SettingsPage({
       </div>
 
       <div className="settings-note">
-        追従の切替はSky右上。水平に合わせると、今の向きを高度0°として扱います。
+        追従の切替はSky右上。上下が逆に動く端末では高度反転をONにします。
       </div>
     </section>
   );

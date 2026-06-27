@@ -86,6 +86,7 @@ This file records implementation work and notable design changes so progress can
 - Fixed CORS headers so Origin-less health checks and direct HTTP requests do not emit an undefined `access-control-allow-origin` value when `ALLOWED_ORIGINS` is configured.
 - Added final public-test sensor calibration controls: normal UI hides zenith completely, Settings can set the current orientation as altitude 0, invert altitude for reversed devices, and inspect raw/final altitude values; docs now cover old Android GitHub Pages certificate failures and backup frontend options.
 - Fixed final sensor test issues by resetting the altitude calibration key/default, throttling orientation events, preferring `deviceorientationabsolute` over duplicate relative events, damping sensor motion further, and making bottom-sheet pages scrollable on mobile.
+- Removed user-set horizon calibration to avoid setup mistakes, restored faster Sensor Mode response, and switched azimuth back to heading/alpha-based estimation to avoid tilt-compensation flips at steep phone angles.
 
 ## Ongoing Rule
 

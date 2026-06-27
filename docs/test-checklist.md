@@ -52,8 +52,7 @@
 - [ ] 天体選択後の視点移動が不自然に飛ばない
 - [ ] Sky画面が過度に眩しくない
 - [ ] SettingsのSensor Probeにevent種別が表示される
-- [ ] SettingsのSensor Probeにraw高度 / offset / final高度 / 高度反転が表示される
-- [ ] 「水平に合わせる」でfinal高度が0°付近になる
+- [ ] SettingsのSensor Probeにraw高度 / final高度 / 高度反転が表示される
 - [ ] 上下が逆に動く端末では「高度反転」で修正できる
 - [ ] 追従ON/OFFがSky上で切り替えられる
 - [ ] 通常UIでは天頂点・天頂ラベル・高度線が表示されない
