@@ -83,6 +83,7 @@ This file records implementation work and notable design changes so progress can
 - Improved Sensor Mode operation by moving the main 手動/追従 toggle onto the Sky view, keeping Settings focused on probe values, correcting the vertical altitude direction, and reducing the normal zenith marker to a small point.
 - Stabilized Sensor Mode tracking by removing the folded altitude formula, using tilt-compensated heading when possible, limiting per-update sensor jumps, and damping azimuth changes near high altitude.
 - Hardened the public test server with target/pointer validation, room and guest limits, room TTL cleanup, WebSocket heartbeat, basic rate limiting, crypto-based session IDs, configurable Origin checks, and Sensor Probe event-type display.
+- Fixed CORS headers so Origin-less health checks and direct HTTP requests do not emit an undefined `access-control-allow-origin` value when `ALLOWED_ORIGINS` is configured.
 
 ## Ongoing Rule
 

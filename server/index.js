@@ -25,21 +25,39 @@ const rooms = new Map();
 /** @type {Map<string, { windowStartedAt: number, count: number }>} */
 const sessionCreateLimits = new Map();
 
-function isOriginAllowed(origin) {
+function isConfiguredOriginAllowed(origin) {
   if (allowedOrigins.length === 0) return true;
-  if (!origin) return true;
   return allowedOrigins.includes(origin);
+}
+
+function isHttpOriginAllowed(origin) {
+  if (!origin) return true;
+  return isConfiguredOriginAllowed(origin);
+}
+
+function isWebSocketOriginAllowed(origin) {
+  if (!origin) return true;
+  return isConfiguredOriginAllowed(origin);
 }
 
 function corsHeaders(request) {
   const origin = request.headers.origin;
-  const allowOrigin = allowedOrigins.length === 0 ? '*' : isOriginAllowed(origin) ? origin : allowedOrigins[0];
-  return {
-    'access-control-allow-origin': allowOrigin,
+  const headers = {
     'access-control-allow-methods': 'GET, POST, OPTIONS',
     'access-control-allow-headers': 'content-type',
     vary: 'Origin',
   };
+
+  if (allowedOrigins.length === 0) {
+    headers['access-control-allow-origin'] = '*';
+    return headers;
+  }
+
+  if (origin && isConfiguredOriginAllowed(origin)) {
+    headers['access-control-allow-origin'] = origin;
+  }
+
+  return headers;
 }
 
 function clientIp(request) {
@@ -202,7 +220,7 @@ function cleanupRooms() {
 }
 
 const server = http.createServer((request, response) => {
-  if (!isOriginAllowed(request.headers.origin)) {
+  if (!isHttpOriginAllowed(request.headers.origin)) {
     sendHttpJson(response, 403, request, { error: 'origin_not_allowed' });
     return;
   }
@@ -259,7 +277,7 @@ const wss = new WebSocketServer({
   server,
   path: '/ws',
   verifyClient: ({ origin }, done) => {
-    if (isOriginAllowed(origin)) {
+    if (isWebSocketOriginAllowed(origin)) {
       done(true);
       return;
     }
