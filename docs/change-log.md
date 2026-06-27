@@ -78,6 +78,7 @@ This file records implementation work and notable design changes so progress can
 - Added club-test deployment support for GitHub Pages frontend and Render-style WebSocket/API backend.
 - Added environment-based API/WebSocket URL switching with `VITE_API_BASE_URL` and `VITE_WS_URL`.
 - Added deployment notes, a test checklist, GitHub Pages workflow, Render config, and README entry points.
+- Added Phase4 Sensor Mode basics: DeviceOrientation probe, iOS permission button, sensor mode toggle, light smoothing, and Sky center updates from estimated device azimuth/altitude.
 - Reduced card-like UI weight for Sky, Targets, Settings notes, and the bottom navigation while keeping guidance panels clear.
 
 ## Ongoing Rule

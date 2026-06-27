@@ -926,6 +926,67 @@ input {
   accent-color: #ff4c3b;
 }
 
+.sensor-permission-button {
+  align-self: flex-start;
+  margin: 4px 12px;
+  padding: 9px 12px;
+  border: 1px solid rgba(244, 241, 223, 0.18);
+  border-radius: 8px;
+  color: #f4f1df;
+  background: rgba(244, 241, 223, 0.08);
+  font-weight: 700;
+}
+
+.night-mode .sensor-permission-button {
+  border-color: rgba(255, 92, 72, 0.28);
+  color: #ff7b6b;
+  background: rgba(255, 92, 72, 0.08);
+}
+
+.sensor-probe {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 4px 12px 8px;
+  overflow: hidden;
+  border: 1px solid rgba(244, 241, 223, 0.07);
+  border-radius: 8px;
+  background: rgba(244, 241, 223, 0.05);
+}
+
+.sensor-probe div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.sensor-probe span {
+  color: rgba(244, 241, 223, 0.58);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.sensor-probe strong {
+  color: #f4f1df;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.night-mode .sensor-probe {
+  border-color: rgba(255, 92, 72, 0.12);
+  background: rgba(255, 92, 72, 0.04);
+}
+
+.night-mode .sensor-probe span {
+  color: rgba(255, 123, 107, 0.62);
+}
+
+.night-mode .sensor-probe strong {
+  color: #ff7b6b;
+}
+
 .settings-note {
   padding: 12px;
   border: 1px solid rgba(244, 241, 223, 0.07);
