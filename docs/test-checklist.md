@@ -52,7 +52,12 @@
 - [ ] 天体選択後の視点移動が不自然に飛ばない
 - [ ] Sky画面が過度に眩しくない
 - [ ] SettingsのSensor Probeにevent種別が表示される
+- [ ] SettingsのSensor Probeにraw高度 / offset / final高度 / 高度反転が表示される
+- [ ] 「水平に合わせる」でfinal高度が0°付近になる
+- [ ] 上下が逆に動く端末では「高度反転」で修正できる
 - [ ] 追従ON/OFFがSky上で切り替えられる
+- [ ] 通常UIでは天頂点・天頂ラベル・高度線が表示されない
+- [ ] `?debug=1` では必要に応じて天頂確認ができる
 
 ## 30分テスト
 
@@ -68,3 +73,13 @@
 - [ ] `SORAVA_WS_URL` が `wss://.../ws` で設定されている
 - [ ] Render Freeのスリープ解除後にSession作成できる
 - [ ] `/SkyShare/join/{sessionId}` の直接アクセスが開ける
+
+## 古いAndroid端末
+
+- [ ] GitHub Pagesで `NET::ERR_CERT_AUTHORITY_INVALID` が出る場合、Chrome直開きで確認する
+- [ ] LINE内ブラウザやQRリーダー内ブラウザを避ける
+- [ ] Chrome / Android System WebView / Google Play services を更新する
+- [ ] 端末の日付と時刻を自動設定にする
+- [ ] Wi-Fiとモバイル通信の両方で試す
+- [ ] それでも開けない場合、Vercel / Netlify / Render Static Site の予備Frontend URLを使う
+- [ ] 古いAndroidでセンサーが不安定な場合、追従をOFFにして手動操作で使う

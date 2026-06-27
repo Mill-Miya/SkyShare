@@ -84,6 +84,7 @@ This file records implementation work and notable design changes so progress can
 - Stabilized Sensor Mode tracking by removing the folded altitude formula, using tilt-compensated heading when possible, limiting per-update sensor jumps, and damping azimuth changes near high altitude.
 - Hardened the public test server with target/pointer validation, room and guest limits, room TTL cleanup, WebSocket heartbeat, basic rate limiting, crypto-based session IDs, configurable Origin checks, and Sensor Probe event-type display.
 - Fixed CORS headers so Origin-less health checks and direct HTTP requests do not emit an undefined `access-control-allow-origin` value when `ALLOWED_ORIGINS` is configured.
+- Added final public-test sensor calibration controls: normal UI hides zenith completely, Settings can set the current orientation as altitude 0, invert altitude for reversed devices, and inspect raw/final altitude values; docs now cover old Android GitHub Pages certificate failures and backup frontend options.
 
 ## Ongoing Rule
 

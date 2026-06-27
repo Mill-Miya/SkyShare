@@ -122,6 +122,30 @@ GITHUB_PAGES=true
 
 `/SkyShare/join/{sessionId}` の直接アクセス用に、build後に `dist/index.html` を `dist/404.html` へコピーします。
 
+## 予備Frontend
+
+古いAndroid端末でGitHub Pagesの証明書を信頼できない場合に備え、必要ならVercel / Netlify / Render Static Siteで同じFrontendを公開します。
+
+推奨設定:
+
+```text
+Install Command: npm ci
+Build Command: npm run build
+Output Directory: dist
+VITE_API_BASE_URL=https://skyshare-nhcb.onrender.com
+VITE_WS_URL=wss://skyshare-nhcb.onrender.com/ws
+```
+
+GitHub Pagesでは `GITHUB_PAGES=true` によりbase pathが `/SkyShare/` になります。Vercel / Netlify / Render Static Siteでは通常 `GITHUB_PAGES` を設定せず、base path `/` で公開してください。
+
+予備Frontendを作った場合は、Render backendの `ALLOWED_ORIGINS` にOriginだけを追加します。
+
+```text
+ALLOWED_ORIGINS=https://mill-miya.github.io,https://xxxxx.vercel.app,http://localhost:5173,http://localhost:5174
+```
+
+`/SkyShare/` や末尾スラッシュを含めないでください。
+
 ## GitHub Actions Variables
 
 Repository variablesに以下を設定してください。
@@ -165,6 +189,37 @@ OFF: Guestの案内が消える
 - WebSocket URLが `wss://.../ws` になっているか
 - ブラウザで位置情報を拒否してもフォールバック座標で動くか
 - Render Freeの初回起動に時間がかかっていないか
+
+### 古いAndroid端末で開けない場合
+
+一部の古いAndroid端末では、GitHub PagesのHTTPS証明書を信頼できず、以下のエラーで開けない場合があります。
+
+```text
+NET::ERR_CERT_AUTHORITY_INVALID
+Subject: *.github.io
+Issuer: Let's Encrypt YR2
+```
+
+この場合、Soravaのコードではなく端末側の証明書信頼ストア、Chrome、Android System WebView、または日時設定が原因の可能性があります。HTTPSをやめたり証明書警告を無視する運用にはしないでください。位置情報・センサー・WebSocketを安全に使うため、HTTPSを維持します。
+
+確認手順:
+
+```text
+1. Chromeで直接開く
+2. LINE内ブラウザやQRリーダー内ブラウザを避ける
+3. Chrome / Android System WebView / Google Play services を更新する
+4. 端末の日付と時刻を自動設定にする
+5. Wi-Fiとモバイル通信の両方で試す
+6. それでも開けない場合は、Vercel / Netlify / Render Static Site の予備Frontend URLを使う
+```
+
+予備Frontendを使う場合もBackendは以下を使います。
+
+```text
+https://skyshare-nhcb.onrender.com
+```
+
+古いAndroidでは、ページが開けてもDeviceOrientationの値が不安定、または取得できない場合があります。その場合は追従モードを使わず、手動操作で利用してください。Soravaは手動操作でも天体共有・方向共有・Guest誘導が使えます。
 
 ## 部内テスト前にやること
 
