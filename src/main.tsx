@@ -124,22 +124,54 @@ function initialSensorProbe(): SensorProbeState {
   };
 }
 
+function estimateTiltCompensatedHeading(alpha: number, beta: number | null, gamma: number | null) {
+  if (beta === null || gamma === null) return normalizeAzimuth(360 - alpha);
+
+  const x = (beta * Math.PI) / 180;
+  const y = (gamma * Math.PI) / 180;
+  const z = (alpha * Math.PI) / 180;
+  const cosX = Math.cos(x);
+  const sinX = Math.sin(x);
+  const cosY = Math.cos(y);
+  const sinY = Math.sin(y);
+  const cosZ = Math.cos(z);
+  const sinZ = Math.sin(z);
+  const vectorX = -cosZ * sinY - sinZ * sinX * cosY;
+  const vectorY = -sinZ * sinY + cosZ * sinX * cosY;
+
+  if (Math.hypot(vectorX, vectorY) < 0.001) return normalizeAzimuth(360 - alpha);
+
+  let headingRad = Math.atan(vectorX / vectorY);
+  if (vectorY < 0) {
+    headingRad += Math.PI;
+  } else if (vectorX < 0) {
+    headingRad += Math.PI * 2;
+  }
+  return normalizeAzimuth((headingRad * 180) / Math.PI);
+}
+
 function estimateSensorView(event: DeviceOrientationEvent) {
   const alpha = typeof event.alpha === 'number' ? event.alpha : null;
   const beta = typeof event.beta === 'number' ? event.beta : null;
+  const gamma = typeof event.gamma === 'number' ? event.gamma : null;
   const webkitHeading = (event as DeviceOrientationEvent & { webkitCompassHeading?: number }).webkitCompassHeading;
   const estimatedAzimuthDeg =
     typeof webkitHeading === 'number'
       ? normalizeAzimuth(webkitHeading)
       : alpha !== null
-        ? normalizeAzimuth(360 - alpha)
+        ? estimateTiltCompensatedHeading(alpha, beta, gamma)
         : null;
-  // In portrait DeviceOrientation, beta is around 90 near the horizon on many phones.
-  // The tested handheld motion increases beta as the phone points upward, so use
-  // abs(beta) - 90 to make "phone up" raise the Sky center altitude.
-  const estimatedAltitudeDeg = beta !== null ? clamp(Math.abs(beta) - 90, -90, 90) : null;
+  // In portrait use, beta works as the front-back tilt: horizon is near 0,
+  // pointing upward increases beta, and pointing downward decreases it.
+  // Keeping the sign avoids the abs() fold that caused horizon suction and high-altitude flips.
+  const estimatedAltitudeDeg = beta !== null ? clamp(beta, -90, 90) : null;
 
   return { estimatedAzimuthDeg, estimatedAltitudeDeg };
+}
+
+function limitedSensorStep(delta: number, smoothing: number, maxStepDeg: number) {
+  if (Math.abs(delta) < 0.12) return 0;
+  return clamp(delta * smoothing, -maxStepDeg, maxStepDeg);
 }
 
 function SkyCanvas({
@@ -911,15 +943,19 @@ function App() {
           azimuthDeg: current.centerAzimuthDeg,
           altitudeDeg: current.centerAltitudeDeg,
         };
-        const smoothing = 0.18;
+        const highAltitude = Math.abs(previous.altitudeDeg) > 72 || Math.abs(estimatedAltitudeDeg) > 72;
+        const azimuthSmoothing = highAltitude ? 0.045 : 0.12;
+        const altitudeSmoothing = 0.14;
+        const azimuthStep = limitedSensorStep(
+          shortestAzimuthDelta(estimatedAzimuthDeg, previous.azimuthDeg),
+          azimuthSmoothing,
+          highAltitude ? 3.5 : 7,
+        );
+        const altitudeStep = limitedSensorStep(estimatedAltitudeDeg - previous.altitudeDeg, altitudeSmoothing, 5);
         const nextAzimuthDeg = normalizeAzimuth(
-          previous.azimuthDeg + shortestAzimuthDelta(estimatedAzimuthDeg, previous.azimuthDeg) * smoothing,
+          previous.azimuthDeg + azimuthStep,
         );
-        const nextAltitudeDeg = clamp(
-          previous.altitudeDeg + (estimatedAltitudeDeg - previous.altitudeDeg) * smoothing,
-          -90,
-          90,
-        );
+        const nextAltitudeDeg = clamp(previous.altitudeDeg + altitudeStep, -90, 90);
         smoothedSensorViewRef.current = { azimuthDeg: nextAzimuthDeg, altitudeDeg: nextAltitudeDeg };
 
         return {
