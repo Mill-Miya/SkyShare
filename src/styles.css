@@ -434,8 +434,9 @@ input {
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
+  touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: calc(max(16px, env(safe-area-inset-bottom)) + 16px);
+  padding-bottom: calc(max(16px, env(safe-area-inset-bottom)) + 48px);
 }
 
 .sheet-layer {
@@ -461,7 +462,7 @@ input {
   grid-template-rows: auto minmax(0, 1fr);
   gap: 10px;
   width: 100%;
-  max-height: min(72dvh, 560px);
+  max-height: min(82dvh, calc(100dvh - 104px));
   padding: 10px;
   border: 1px solid rgba(244, 241, 223, 0.16);
   border-radius: 8px 8px 0 0;
@@ -501,6 +502,7 @@ input {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+  touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
 }
 

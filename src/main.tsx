@@ -40,7 +40,8 @@ const SHEET_ANIMATION_MS = 220;
 const VIEW_ANIMATION_MS = 720;
 const DEFAULT_PUBLIC_API_BASE_URL = 'https://skyshare-nhcb.onrender.com';
 const DEFAULT_PUBLIC_WS_URL = 'wss://skyshare-nhcb.onrender.com/ws';
-const SENSOR_INVERT_ALTITUDE_KEY = 'sorava.sensor.invertAltitude';
+const SENSOR_INVERT_ALTITUDE_KEY = 'sorava.sensor.invertAltitude.v2';
+const DEFAULT_SENSOR_INVERT_ALTITUDE = true;
 
 function isGitHubPagesHost() {
   return window.location.hostname === 'mill-miya.github.io';
@@ -151,10 +152,9 @@ function estimateSensorView(event: DeviceOrientationEvent) {
       : alpha !== null
         ? normalizeAzimuth(360 - alpha)
         : null;
-  // Treat the phone screen normal as the viewing direction: screen-up is zenith,
-  // and an upright portrait phone is near the horizon. Some devices flip beta
-  // sign around vertical, so use magnitude here and keep inversion as a manual fallback.
-  const estimatedAltitudeDeg = beta !== null ? clamp(90 - Math.abs(beta), -90, 90) : null;
+  // Raw altitude is negative when the screen points upward. The app defaults to
+  // inverting this so screen-up becomes zenith while keeping a debug fallback.
+  const estimatedAltitudeDeg = beta !== null ? clamp(Math.abs(beta) - 90, -90, 90) : null;
 
   return { estimatedAzimuthDeg, estimatedAltitudeDeg };
 }
@@ -464,7 +464,7 @@ function App() {
   const [sensorProbe, setSensorProbe] = useState<SensorProbeState>(() => initialSensorProbe());
   const [sensorNotice, setSensorNotice] = useState<string | null>(null);
   const [invertSensorAltitude, setInvertSensorAltitude] = useState(() =>
-    readStoredBoolean(SENSOR_INVERT_ALTITUDE_KEY, false),
+    readStoredBoolean(SENSOR_INVERT_ALTITUDE_KEY, DEFAULT_SENSOR_INVERT_ALTITUDE),
   );
   const [view, setView] = useState<ViewState>({
     centerAzimuthDeg: 180,
@@ -1183,6 +1183,7 @@ function App() {
                 sensorProbe={sensorProbe}
                 invertSensorAltitude={invertSensorAltitude}
                 canRequestSensorPermission={canRequestDeviceOrientationPermission()}
+                debug={debug}
                 onNightModeChange={setNightMode}
                 onShowAuroraChange={setShowAurora}
                 onShowAltitudeGuideChange={setShowAltitudeGuide}
@@ -1638,6 +1639,7 @@ function SettingsPage({
   sensorProbe,
   invertSensorAltitude,
   canRequestSensorPermission,
+  debug,
   onNightModeChange,
   onShowAuroraChange,
   onShowAltitudeGuideChange,
@@ -1650,6 +1652,7 @@ function SettingsPage({
   sensorProbe: SensorProbeState;
   invertSensorAltitude: boolean;
   canRequestSensorPermission: boolean;
+  debug: boolean;
   onNightModeChange: (enabled: boolean) => void;
   onShowAuroraChange: (enabled: boolean) => void;
   onShowAltitudeGuideChange: (enabled: boolean) => void;
@@ -1686,85 +1689,89 @@ function SettingsPage({
         <input type="checkbox" checked={showAurora} onChange={(event) => onShowAuroraChange(event.target.checked)} />
       </label>
 
-      <label className="toggle-row">
-        <span>
-          <strong>Debug天頂</strong>
-          <small>?debug=1 のときだけ表示します</small>
-        </span>
-        <input
-          type="checkbox"
-          checked={showAltitudeGuide}
-          onChange={(event) => onShowAltitudeGuideChange(event.target.checked)}
-        />
-      </label>
+      {debug && (
+        <>
+          <label className="toggle-row">
+            <span>
+              <strong>Debug天頂</strong>
+              <small>?debug=1 のときだけ表示します</small>
+            </span>
+            <input
+              type="checkbox"
+              checked={showAltitudeGuide}
+              onChange={(event) => onShowAltitudeGuideChange(event.target.checked)}
+            />
+          </label>
 
-      {canRequestSensorPermission && sensorProbe.permissionState !== 'granted' && (
-        <button type="button" className="sensor-permission-button" onClick={onRequestSensorPermission}>
-          センサーを許可
-        </button>
+          {canRequestSensorPermission && sensorProbe.permissionState !== 'granted' && (
+            <button type="button" className="sensor-permission-button" onClick={onRequestSensorPermission}>
+              センサーを許可
+            </button>
+          )}
+
+          <label className="toggle-row">
+            <span>
+              <strong>高度反転</strong>
+              <small>上向き/下向きが逆に動く場合にON</small>
+            </span>
+            <input
+              type="checkbox"
+              checked={invertSensorAltitude}
+              onChange={(event) => onInvertSensorAltitudeChange(event.target.checked)}
+            />
+          </label>
+
+          <div className="sensor-probe">
+            <div>
+              <span>DeviceOrientation</span>
+              <strong>{sensorProbe.supported ? '対応' : '非対応'}</strong>
+            </div>
+            <div>
+              <span>権限</span>
+              <strong>{permissionLabel}</strong>
+            </div>
+            <div>
+              <span>event</span>
+              <strong>{sensorProbe.eventType ?? '--'}</strong>
+            </div>
+            <div>
+              <span>alpha</span>
+              <strong>{formatSensorValue(sensorProbe.alpha)}</strong>
+            </div>
+            <div>
+              <span>beta</span>
+              <strong>{formatSensorValue(sensorProbe.beta)}</strong>
+            </div>
+            <div>
+              <span>gamma</span>
+              <strong>{formatSensorValue(sensorProbe.gamma)}</strong>
+            </div>
+            <div>
+              <span>absolute</span>
+              <strong>{sensorProbe.absolute === null ? '--' : sensorProbe.absolute ? 'true' : 'false'}</strong>
+            </div>
+            <div>
+              <span>推定方位</span>
+              <strong>{formatSensorValue(sensorProbe.estimatedAzimuthDeg)}°</strong>
+            </div>
+            <div>
+              <span>raw高度</span>
+              <strong>{formatSensorValue(sensorProbe.rawEstimatedAltitudeDeg)}°</strong>
+            </div>
+            <div>
+              <span>final高度</span>
+              <strong>{formatSensorValue(sensorProbe.finalEstimatedAltitudeDeg)}°</strong>
+            </div>
+            <div>
+              <span>高度反転</span>
+              <strong>{invertSensorAltitude ? 'ON' : 'OFF'}</strong>
+            </div>
+          </div>
+        </>
       )}
 
-      <label className="toggle-row">
-        <span>
-          <strong>高度反転</strong>
-          <small>上向き/下向きが逆に動く場合にON</small>
-        </span>
-        <input
-          type="checkbox"
-          checked={invertSensorAltitude}
-          onChange={(event) => onInvertSensorAltitudeChange(event.target.checked)}
-        />
-      </label>
-
-      <div className="sensor-probe">
-        <div>
-          <span>DeviceOrientation</span>
-          <strong>{sensorProbe.supported ? '対応' : '非対応'}</strong>
-        </div>
-        <div>
-          <span>権限</span>
-          <strong>{permissionLabel}</strong>
-        </div>
-        <div>
-          <span>event</span>
-          <strong>{sensorProbe.eventType ?? '--'}</strong>
-        </div>
-        <div>
-          <span>alpha</span>
-          <strong>{formatSensorValue(sensorProbe.alpha)}</strong>
-        </div>
-        <div>
-          <span>beta</span>
-          <strong>{formatSensorValue(sensorProbe.beta)}</strong>
-        </div>
-        <div>
-          <span>gamma</span>
-          <strong>{formatSensorValue(sensorProbe.gamma)}</strong>
-        </div>
-        <div>
-          <span>absolute</span>
-          <strong>{sensorProbe.absolute === null ? '--' : sensorProbe.absolute ? 'true' : 'false'}</strong>
-        </div>
-        <div>
-          <span>推定方位</span>
-          <strong>{formatSensorValue(sensorProbe.estimatedAzimuthDeg)}°</strong>
-        </div>
-        <div>
-          <span>raw高度</span>
-          <strong>{formatSensorValue(sensorProbe.rawEstimatedAltitudeDeg)}°</strong>
-        </div>
-        <div>
-          <span>final高度</span>
-          <strong>{formatSensorValue(sensorProbe.finalEstimatedAltitudeDeg)}°</strong>
-        </div>
-        <div>
-          <span>高度反転</span>
-          <strong>{invertSensorAltitude ? 'ON' : 'OFF'}</strong>
-        </div>
-      </div>
-
       <div className="settings-note">
-        追従の切替はSky右上。上下が逆に動く端末では高度反転をONにします。
+        追従の切替はSky右上。センサーが不安定な端末では手動で使えます。
       </div>
     </section>
   );

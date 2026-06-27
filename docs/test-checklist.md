@@ -51,9 +51,8 @@
 - [ ] ナイトモードが使える
 - [ ] 天体選択後の視点移動が不自然に飛ばない
 - [ ] Sky画面が過度に眩しくない
-- [ ] SettingsのSensor Probeにevent種別が表示される
-- [ ] SettingsのSensor Probeにraw高度 / final高度 / 高度反転が表示される
-- [ ] 上下が逆に動く端末では「高度反転」で修正できる
+- [ ] `?debug=1` のSettingsでSensor Probeにevent種別が表示される
+- [ ] `?debug=1` のSettingsでraw高度 / final高度 / 高度反転が表示される
 - [ ] 追従ON/OFFがSky上で切り替えられる
 - [ ] 通常UIでは天頂点・天頂ラベル・高度線が表示されない
 - [ ] `?debug=1` では必要に応じて天頂確認ができる
