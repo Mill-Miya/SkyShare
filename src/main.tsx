@@ -93,6 +93,7 @@ type SensorPermissionState = 'unsupported' | 'prompt' | 'granted' | 'denied' | '
 type SensorProbeState = {
   supported: boolean;
   permissionState: SensorPermissionState;
+  eventType: 'deviceorientation' | 'deviceorientationabsolute' | null;
   alpha: number | null;
   beta: number | null;
   gamma: number | null;
@@ -115,6 +116,7 @@ function initialSensorProbe(): SensorProbeState {
   return {
     supported,
     permissionState: !supported ? 'unsupported' : canRequestDeviceOrientationPermission() ? 'prompt' : 'granted',
+    eventType: null,
     alpha: null,
     beta: null,
     gamma: null,
@@ -919,7 +921,10 @@ function App() {
 
     if (canRequestDeviceOrientationPermission() && sensorProbe.permissionState !== 'granted') return;
 
-    const handleOrientation = (event: DeviceOrientationEvent) => {
+    const handleOrientation = (
+      event: DeviceOrientationEvent,
+      eventType: SensorProbeState['eventType'] = 'deviceorientation',
+    ) => {
       const { estimatedAzimuthDeg, estimatedAltitudeDeg } = estimateSensorView(event);
       const alpha = typeof event.alpha === 'number' ? event.alpha : null;
       const beta = typeof event.beta === 'number' ? event.beta : null;
@@ -928,6 +933,7 @@ function App() {
       setSensorProbe({
         supported: true,
         permissionState: 'granted',
+        eventType,
         alpha,
         beta,
         gamma,
@@ -966,8 +972,14 @@ function App() {
       });
     };
 
-    window.addEventListener('deviceorientation', handleOrientation, true);
-    return () => window.removeEventListener('deviceorientation', handleOrientation, true);
+    const handleRelativeOrientation = (event: DeviceOrientationEvent) => handleOrientation(event, 'deviceorientation');
+    const handleAbsoluteOrientation = (event: DeviceOrientationEvent) => handleOrientation(event, 'deviceorientationabsolute');
+    window.addEventListener('deviceorientation', handleRelativeOrientation, true);
+    window.addEventListener('deviceorientationabsolute', handleAbsoluteOrientation, true);
+    return () => {
+      window.removeEventListener('deviceorientation', handleRelativeOrientation, true);
+      window.removeEventListener('deviceorientationabsolute', handleAbsoluteOrientation, true);
+    };
   }, [sensorModeEnabled, sensorProbe.permissionState]);
 
   useEffect(() => {
@@ -1672,6 +1684,10 @@ function SettingsPage({
         <div>
           <span>権限</span>
           <strong>{permissionLabel}</strong>
+        </div>
+        <div>
+          <span>event</span>
+          <strong>{sensorProbe.eventType ?? '--'}</strong>
         </div>
         <div>
           <span>alpha</span>

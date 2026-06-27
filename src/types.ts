@@ -101,4 +101,15 @@ export type ServerWsMessage =
   | { type: 'target:update'; targetId: TargetId | null; shareMode?: 'off' | 'target' }
   | { type: 'pointer:update'; azimuth: number; altitude: number }
   | { type: 'session:ended'; reason: 'host_ended' | 'host_disconnected' | 'server_shutdown' }
-  | { type: 'error'; code: 'SESSION_NOT_FOUND' | 'HOST_REQUIRED' | 'INVALID_MESSAGE' };
+  | {
+      type: 'error';
+      code:
+        | 'SESSION_NOT_FOUND'
+        | 'HOST_REQUIRED'
+        | 'INVALID_MESSAGE'
+        | 'INVALID_SESSION_ID'
+        | 'INVALID_TARGET_ID'
+        | 'INVALID_POINTER'
+        | 'ROOM_FULL'
+        | 'RATE_LIMITED';
+    };

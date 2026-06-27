@@ -1,28 +1,119 @@
+import crypto from 'node:crypto';
 import http from 'node:http';
 import { WebSocketServer } from 'ws';
 
 const PORT = Number(process.env.PORT ?? 8787);
+const MAX_ROOMS = Number(process.env.MAX_ROOMS ?? 80);
+const MAX_GUESTS_PER_ROOM = Number(process.env.MAX_GUESTS_PER_ROOM ?? 60);
+const ROOM_TTL_MS = Number(process.env.ROOM_TTL_MS ?? 6 * 60 * 60 * 1000);
+const CLEANUP_INTERVAL_MS = Number(process.env.CLEANUP_INTERVAL_MS ?? 5 * 60 * 1000);
+const HEARTBEAT_INTERVAL_MS = Number(process.env.HEARTBEAT_INTERVAL_MS ?? 30000);
+const SESSION_CREATE_WINDOW_MS = Number(process.env.SESSION_CREATE_WINDOW_MS ?? 60000);
+const SESSION_CREATE_LIMIT = Number(process.env.SESSION_CREATE_LIMIT ?? 12);
+const POINTER_MIN_INTERVAL_MS = Number(process.env.POINTER_MIN_INTERVAL_MS ?? 45);
+const WS_OPEN = 1;
 
-/** @type {Map<string, { host: import('ws').WebSocket | null, guests: Set<import('ws').WebSocket>, targetId: string | null, shareMode: 'off' | 'target' | 'pointer', pointer: { azimuthDeg: number, altitudeDeg: number } | null, hostDisconnectTimer: NodeJS.Timeout | null }>} */
+const VALID_TARGET_IDS = new Set(['moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn']);
+const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+/** @type {Map<string, { host: import('ws').WebSocket | null, guests: Set<import('ws').WebSocket>, targetId: string | null, shareMode: 'off' | 'target' | 'pointer', pointer: { azimuthDeg: number, altitudeDeg: number } | null, hostDisconnectTimer: NodeJS.Timeout | null, createdAt: number, lastActivityAt: number }>} */
 const rooms = new Map();
+
+/** @type {Map<string, { windowStartedAt: number, count: number }>} */
+const sessionCreateLimits = new Map();
+
+function isOriginAllowed(origin) {
+  if (allowedOrigins.length === 0) return true;
+  if (!origin) return true;
+  return allowedOrigins.includes(origin);
+}
+
+function corsHeaders(request) {
+  const origin = request.headers.origin;
+  const allowOrigin = allowedOrigins.length === 0 ? '*' : isOriginAllowed(origin) ? origin : allowedOrigins[0];
+  return {
+    'access-control-allow-origin': allowOrigin,
+    'access-control-allow-methods': 'GET, POST, OPTIONS',
+    'access-control-allow-headers': 'content-type',
+    vary: 'Origin',
+  };
+}
+
+function clientIp(request) {
+  const forwardedFor = request.headers['x-forwarded-for'];
+  if (typeof forwardedFor === 'string' && forwardedFor.length > 0) {
+    return forwardedFor.split(',')[0].trim();
+  }
+  return request.socket.remoteAddress ?? 'unknown';
+}
+
+function checkSessionCreateRateLimit(ip) {
+  const now = Date.now();
+  const current = sessionCreateLimits.get(ip);
+  if (!current || now - current.windowStartedAt > SESSION_CREATE_WINDOW_MS) {
+    sessionCreateLimits.set(ip, { windowStartedAt: now, count: 1 });
+    return true;
+  }
+  if (current.count >= SESSION_CREATE_LIMIT) return false;
+  current.count += 1;
+  return true;
+}
 
 function createSessionId() {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let id = '';
-  for (let index = 0; index < 6; index += 1) {
-    id += alphabet[Math.floor(Math.random() * alphabet.length)];
+  for (let attempt = 0; attempt < 24; attempt += 1) {
+    let id = '';
+    for (let index = 0; index < 6; index += 1) {
+      id += alphabet[crypto.randomInt(0, alphabet.length)];
+    }
+    if (!rooms.has(id)) return id;
   }
-  return rooms.has(id) ? createSessionId() : id;
+  throw new Error('session_id_generation_failed');
 }
 
 function sendJson(socket, message) {
-  if (socket.readyState === socket.OPEN) {
+  if (socket.readyState === WS_OPEN) {
     socket.send(JSON.stringify(message));
   }
 }
 
+function sendHttpJson(response, status, request, body) {
+  response.writeHead(status, {
+    'content-type': 'application/json',
+    ...corsHeaders(request),
+  });
+  response.end(JSON.stringify(body));
+}
+
+function touchRoom(room) {
+  room.lastActivityAt = Date.now();
+}
+
 function participantCount(room) {
   return (room.host ? 1 : 0) + room.guests.size;
+}
+
+function isValidSessionId(sessionId) {
+  return typeof sessionId === 'string' && /^[A-Z2-9]{6}$/.test(sessionId);
+}
+
+function isValidTargetId(targetId) {
+  return targetId === null || (typeof targetId === 'string' && VALID_TARGET_IDS.has(targetId));
+}
+
+function isValidPointerValue(value, min, max, maxExclusive = false) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return false;
+  return maxExclusive ? value >= min && value < max : value >= min && value <= max;
+}
+
+function validatePointerMessage(message) {
+  return (
+    isValidPointerValue(message.azimuth, 0, 360, true) &&
+    isValidPointerValue(message.altitude, -90, 90)
+  );
 }
 
 function broadcastState(sessionId, room) {
@@ -75,6 +166,14 @@ function closeSocket(socket) {
   }
 }
 
+function terminateSocket(socket) {
+  try {
+    socket.terminate();
+  } catch {
+    // Ignore stale socket cleanup failures.
+  }
+}
+
 function endSession(sessionId, room, reason) {
   clearHostDisconnectTimer(room);
   room.guests.forEach((guest) => sendJson(guest, { type: 'session:ended', reason }));
@@ -87,18 +186,52 @@ function endSession(sessionId, room, reason) {
   }
 }
 
+function cleanupRooms() {
+  const now = Date.now();
+  rooms.forEach((room, sessionId) => {
+    if (now - room.createdAt > ROOM_TTL_MS || now - room.lastActivityAt > ROOM_TTL_MS) {
+      endSession(sessionId, room, 'server_shutdown');
+    }
+  });
+
+  sessionCreateLimits.forEach((limit, ip) => {
+    if (now - limit.windowStartedAt > SESSION_CREATE_WINDOW_MS * 2) {
+      sessionCreateLimits.delete(ip);
+    }
+  });
+}
+
 const server = http.createServer((request, response) => {
+  if (!isOriginAllowed(request.headers.origin)) {
+    sendHttpJson(response, 403, request, { error: 'origin_not_allowed' });
+    return;
+  }
+
   if (request.method === 'GET' && (request.url === '/' || request.url === '/health')) {
-    response.writeHead(200, {
-      'content-type': 'application/json',
-      'access-control-allow-origin': '*',
-    });
-    response.end(JSON.stringify({ ok: true, service: 'sorava-session-server' }));
+    sendHttpJson(response, 200, request, { ok: true, service: 'sorava-session-server' });
     return;
   }
 
   if (request.method === 'POST' && request.url === '/api/session') {
-    const sessionId = createSessionId();
+    const ip = clientIp(request);
+    if (!checkSessionCreateRateLimit(ip)) {
+      sendHttpJson(response, 429, request, { error: 'rate_limited' });
+      return;
+    }
+    if (rooms.size >= MAX_ROOMS) {
+      sendHttpJson(response, 503, request, { error: 'room_limit_reached' });
+      return;
+    }
+
+    let sessionId;
+    try {
+      sessionId = createSessionId();
+    } catch {
+      sendHttpJson(response, 500, request, { error: 'session_id_generation_failed' });
+      return;
+    }
+
+    const now = Date.now();
     rooms.set(sessionId, {
       host: null,
       guests: new Set(),
@@ -106,34 +239,43 @@ const server = http.createServer((request, response) => {
       shareMode: 'off',
       pointer: null,
       hostDisconnectTimer: null,
+      createdAt: now,
+      lastActivityAt: now,
     });
-    response.writeHead(200, {
-      'content-type': 'application/json',
-      'access-control-allow-origin': '*',
-    });
-    response.end(JSON.stringify({ sessionId }));
+    sendHttpJson(response, 200, request, { sessionId });
     return;
   }
 
   if (request.method === 'OPTIONS') {
-    response.writeHead(204, {
-      'access-control-allow-origin': '*',
-      'access-control-allow-methods': 'POST, OPTIONS',
-      'access-control-allow-headers': 'content-type',
-    });
+    response.writeHead(204, corsHeaders(request));
     response.end();
     return;
   }
 
-  response.writeHead(404, { 'content-type': 'application/json' });
-  response.end(JSON.stringify({ error: 'not_found' }));
+  sendHttpJson(response, 404, request, { error: 'not_found' });
 });
 
-const wss = new WebSocketServer({ server, path: '/ws' });
+const wss = new WebSocketServer({
+  server,
+  path: '/ws',
+  verifyClient: ({ origin }, done) => {
+    if (isOriginAllowed(origin)) {
+      done(true);
+      return;
+    }
+    done(false, 403, 'Forbidden');
+  },
+});
 
 wss.on('connection', (socket) => {
   let joinedSessionId = null;
   let role = null;
+  let lastPointerUpdateAt = 0;
+  socket.isAlive = true;
+
+  socket.on('pong', () => {
+    socket.isAlive = true;
+  });
 
   socket.on('message', (rawMessage) => {
     let message;
@@ -145,14 +287,26 @@ wss.on('connection', (socket) => {
     }
 
     if (message.type === 'host:join' || message.type === 'guest:join') {
+      if (!isValidSessionId(message.sessionId)) {
+        sendJson(socket, { type: 'error', code: 'INVALID_SESSION_ID' });
+        return;
+      }
+
       const room = rooms.get(message.sessionId);
       if (!room) {
         sendJson(socket, { type: 'error', code: 'SESSION_NOT_FOUND' });
         return;
       }
 
+      if (message.type === 'guest:join' && room.guests.size >= MAX_GUESTS_PER_ROOM && !room.guests.has(socket)) {
+        sendJson(socket, { type: 'error', code: 'ROOM_FULL' });
+        closeSocket(socket);
+        return;
+      }
+
       joinedSessionId = message.sessionId;
       role = message.type === 'host:join' ? 'host' : 'guest';
+      touchRoom(room);
 
       if (role === 'host') {
         clearHostDisconnectTimer(room);
@@ -179,7 +333,12 @@ wss.on('connection', (socket) => {
         sendJson(socket, { type: 'error', code: 'SESSION_NOT_FOUND' });
         return;
       }
+      if (!isValidTargetId(message.targetId)) {
+        sendJson(socket, { type: 'error', code: 'INVALID_TARGET_ID' });
+        return;
+      }
 
+      touchRoom(room);
       room.targetId = message.targetId;
       room.shareMode = resolveTargetShareMode(message);
       room.pointer = null;
@@ -198,12 +357,24 @@ wss.on('connection', (socket) => {
         sendJson(socket, { type: 'error', code: 'SESSION_NOT_FOUND' });
         return;
       }
+      if (!validatePointerMessage(message)) {
+        sendJson(socket, { type: 'error', code: 'INVALID_POINTER' });
+        return;
+      }
 
+      const now = Date.now();
+      if (now - lastPointerUpdateAt < POINTER_MIN_INTERVAL_MS) {
+        sendJson(socket, { type: 'error', code: 'RATE_LIMITED' });
+        return;
+      }
+      lastPointerUpdateAt = now;
+
+      touchRoom(room);
       room.targetId = null;
       room.shareMode = 'pointer';
       room.pointer = {
-        azimuthDeg: Number(message.azimuth),
-        altitudeDeg: Number(message.altitude),
+        azimuthDeg: message.azimuth,
+        altitudeDeg: message.altitude,
       };
       broadcastPointer(joinedSessionId, room, room.pointer.azimuthDeg, room.pointer.altitudeDeg);
       return;
@@ -221,6 +392,7 @@ wss.on('connection', (socket) => {
         return;
       }
 
+      touchRoom(room);
       endSession(joinedSessionId, room, 'host_ended');
       return;
     }
@@ -233,6 +405,7 @@ wss.on('connection', (socket) => {
     const room = rooms.get(joinedSessionId);
     if (!room) return;
 
+    touchRoom(room);
     if (role === 'host' && room.host === socket) {
       room.host = null;
       clearHostDisconnectTimer(room);
@@ -250,12 +423,30 @@ wss.on('connection', (socket) => {
   });
 });
 
+const cleanupTimer = setInterval(cleanupRooms, CLEANUP_INTERVAL_MS);
+cleanupTimer.unref();
+
+const heartbeatTimer = setInterval(() => {
+  wss.clients.forEach((socket) => {
+    if (socket.isAlive === false) {
+      terminateSocket(socket);
+      return;
+    }
+    socket.isAlive = false;
+    socket.ping();
+  });
+}, HEARTBEAT_INTERVAL_MS);
+heartbeatTimer.unref();
+
 server.listen(PORT, () => {
-  console.log(`SkyShare session server listening on http://127.0.0.1:${PORT}`);
+  console.log(`SkyShare session server listening on port ${PORT}`);
 });
 
 function shutdown() {
+  clearInterval(cleanupTimer);
+  clearInterval(heartbeatTimer);
   rooms.forEach((room, sessionId) => endSession(sessionId, room, 'server_shutdown'));
+  wss.close();
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(0), 1000).unref();
 }

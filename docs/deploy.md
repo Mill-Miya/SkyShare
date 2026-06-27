@@ -13,18 +13,18 @@ https://mill-miya.github.io/SkyShare/
 Backend:
 
 ```text
-https://<render-service-name>.onrender.com
+https://skyshare-nhcb.onrender.com
 ```
 
-Render作成後、実際のBackend URLに置き換えてください。
+Renderのサービスを作り直した場合のみ、新しいBackend URLに置き換えてください。
 
 ## 構成
 
 ```text
 Frontend: GitHub Pages
 Backend: Render Free Web Service
-WebSocket: wss://<render-service-name>.onrender.com/ws
-API: https://<render-service-name>.onrender.com/api/session
+WebSocket: wss://skyshare-nhcb.onrender.com/ws
+API: https://skyshare-nhcb.onrender.com/api/session
 ```
 
 GitHub PagesではNode.jsサーバーを動かせないため、Session作成APIとWebSocketはRender側で動かします。
@@ -75,6 +75,31 @@ Render Freeはスリープする可能性があります。部内テスト開始
 https://<render-service-name>.onrender.com/health
 ```
 
+### Backend環境変数
+
+公開テストでは未設定でも動きますが、必要に応じてRender側で以下を調整できます。
+
+```text
+ALLOWED_ORIGINS=https://mill-miya.github.io,http://localhost:5173,http://localhost:5174
+MAX_ROOMS=80
+MAX_GUESTS_PER_ROOM=60
+ROOM_TTL_MS=21600000
+SESSION_CREATE_LIMIT=12
+SESSION_CREATE_WINDOW_MS=60000
+POINTER_MIN_INTERVAL_MS=45
+```
+
+`ALLOWED_ORIGINS` 未設定時は部内テスト優先で全Originを許可します。設定する場合はGitHub Pages URLとローカル確認用URLをカンマ区切りで入れてください。
+
+サーバー側では以下を保護しています。
+
+```text
+targetId: null または moon/mercury/venus/mars/jupiter/saturn のみ許可
+pointer azimuth: 0以上360未満のnumberのみ許可
+pointer altitude: -90以上90以下のnumberのみ許可
+NaN / Infinity / 文字列数値 / オブジェクトは拒否
+```
+
 ## GitHub Pages設定
 
 GitHub repository settingsでPagesを有効にします。
@@ -102,8 +127,8 @@ GITHUB_PAGES=true
 Repository variablesに以下を設定してください。
 
 ```text
-SORAVA_API_BASE_URL=https://<render-service-name>.onrender.com
-SORAVA_WS_URL=wss://<render-service-name>.onrender.com/ws
+SORAVA_API_BASE_URL=https://skyshare-nhcb.onrender.com
+SORAVA_WS_URL=wss://skyshare-nhcb.onrender.com/ws
 ```
 
 `SORAVA_WS_URL` は以下のように `/ws` なしでも動きますが、明示的に `/ws` まで入れることを推奨します。
@@ -135,6 +160,7 @@ OFF: Guestの案内が消える
 - Render backendがスリープしていないか
 - `https://<render-service-name>.onrender.com/health` が `ok: true` を返すか
 - GitHub Actions Variablesが設定されているか
+- `ALLOWED_ORIGINS` を設定した場合、GitHub Pages URLが含まれているか
 - HTTPSページから `ws://` へ接続していないか
 - WebSocket URLが `wss://.../ws` になっているか
 - ブラウザで位置情報を拒否してもフォールバック座標で動くか
