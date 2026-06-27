@@ -547,7 +547,44 @@ input {
 .targets-page {
   display: grid;
   align-content: start;
-  gap: 2px;
+  gap: 6px;
+}
+
+.target-category-strip {
+  display: flex;
+  gap: 7px;
+  margin: 0 -2px 6px;
+  padding: 0 2px 4px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.target-category-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.target-category-strip button {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 6px 11px;
+  border: 1px solid rgba(244, 241, 223, 0.12);
+  border-radius: 999px;
+  background: rgba(244, 241, 223, 0.05);
+  color: rgba(244, 241, 223, 0.78);
+  font-size: 12px;
+}
+
+.target-category-strip button.active {
+  border-color: rgba(255, 238, 170, 0.34);
+  background: rgba(255, 238, 170, 0.13);
+  color: #fff0aa;
+}
+
+.night-mode .target-category-strip button.active {
+  border-color: rgba(255, 84, 64, 0.36);
+  background: rgba(128, 0, 0, 0.2);
+  color: #ff705e;
 }
 
 .target-row {
@@ -610,9 +647,22 @@ input {
   font-size: 12px;
 }
 
+.target-row small {
+  grid-column: 2 / -1;
+  color: rgba(244, 241, 223, 0.58);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
 .target-status {
   font-weight: 800;
   text-align: right;
+}
+
+.target-empty {
+  padding: 14px 4px;
+  color: rgba(244, 241, 223, 0.62);
+  font-size: 13px;
 }
 
 .settings-page {

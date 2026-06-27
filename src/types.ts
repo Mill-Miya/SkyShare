@@ -1,6 +1,7 @@
 import type * as Astronomy from 'astronomy-engine';
 
-export type TargetId = 'moon' | 'mercury' | 'venus' | 'mars' | 'jupiter' | 'saturn';
+export type SolarSystemTargetId = 'moon' | 'mercury' | 'venus' | 'mars' | 'jupiter' | 'saturn';
+export type TargetId = SolarSystemTargetId | string;
 
 export type Page = 'sky' | 'targets' | 'session' | 'settings';
 
@@ -9,6 +10,7 @@ export type TargetPosition = {
   azimuthDeg: number;
   altitudeDeg: number;
   phaseDeg?: number;
+  kind?: TargetKind;
 };
 
 export type StarPosition = {
@@ -43,11 +45,24 @@ export type ViewMetrics = {
 export type TargetDefinition = {
   id: TargetId;
   label: string;
-  body: Astronomy.Body;
+  body?: Astronomy.Body;
   color: string;
   glow: string;
   radius: number;
+  kind: TargetKind;
+  category: TargetCategory;
+  nameEn?: string;
+  raHours?: number;
+  decDeg?: number;
+  magnitude?: number;
+  descriptionJa?: string;
+  recommended?: boolean;
+  seasonalTags?: Array<'spring' | 'summer' | 'autumn' | 'winter'>;
 };
+
+export type TargetKind = 'moon' | 'planet' | 'star' | 'messier' | 'double_star' | 'landmark';
+
+export type TargetCategory = 'recommended' | 'solar' | 'stars' | 'messier' | 'double' | 'landmark' | 'seasonal';
 
 export type AltitudeStatus = 'visible' | 'difficult' | 'below';
 

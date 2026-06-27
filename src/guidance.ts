@@ -25,7 +25,7 @@ export function getAltitudeStatus(altitudeDeg: number): AltitudeStatus {
 export function getAltitudeStatusLabel(status: AltitudeStatus) {
   if (status === 'below') return '地平線下';
   if (status === 'difficult') return '観測困難';
-  return '見える';
+  return '見やすい';
 }
 
 export function formatDirection(azimuthDeg: number) {

@@ -1,7 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import QRCode from 'qrcode';
-import { TARGETS, calculateStars, calculateTargets } from './astronomy';
+import {
+  TARGET_CATEGORIES,
+  calculateStars,
+  calculateTargets,
+  getKindLabel,
+  getTargetDefinition,
+} from './astronomy';
 import {
   clamp,
   drawAurora,
@@ -24,6 +30,7 @@ import type {
   SharedPointer,
   StarPosition,
   TargetId,
+  TargetCategory,
   TargetPosition,
   ViewMetrics,
   ViewState,
@@ -341,15 +348,24 @@ function SkyCanvas({
     }
 
     positions.forEach((position) => {
+      const selected = selectedTargetId === position.id;
+      if (position.altitudeDeg < 0 && !selected && !debug) return;
       const x = centerX + shortestAzimuthDelta(position.azimuthDeg, view.centerAzimuthDeg) * pxPerDeg;
       const y = centerY - (position.altitudeDeg - view.centerAltitudeDeg) * pxPerDeg;
       if (x < -80 || x > width + 80 || y < -80 || y > height + 80) return;
 
-      const target = TARGETS.find((item) => item.id === position.id);
-      const selected = selectedTargetId === position.id;
+      const target = getTargetDefinition(position.id);
       const radius = (target?.radius ?? 5) + (selected ? 1.3 : 0);
 
       drawTargetObject(context, target, position, x, y, selected, nightMode);
+
+      const showLabel =
+        selected ||
+        debug ||
+        target?.kind === 'moon' ||
+        target?.kind === 'planet' ||
+        (target?.recommended && position.altitudeDeg >= 0);
+      if (!showLabel) return;
 
       context.fillStyle = selected
         ? nightMode
@@ -1224,7 +1240,7 @@ function GuidanceOverlay({
   nightMode: boolean;
   sharedByHost: boolean;
 }) {
-  const target = TARGETS.find((item) => item.id === selectedPosition.id);
+  const target = getTargetDefinition(selectedPosition.id);
   const statusLabel = selectedStatus ? getAltitudeStatusLabel(selectedStatus) : '';
   const distanceDeg = Math.hypot(guidance.deltaAzimuthDeg, guidance.deltaAltitudeDeg);
   const maxDistanceDeg = 45;
@@ -1327,14 +1343,50 @@ function TargetsPage({
   onClear: () => void;
   onSelect: (targetId: TargetId, position: TargetPosition) => void;
 }) {
+  const [category, setCategory] = useState<TargetCategory>('recommended');
+  const season = getCurrentSeason();
+  const visiblePositions = positions
+    .map((position) => ({ position, target: getTargetDefinition(position.id) }))
+    .filter(({ target }) => Boolean(target))
+    .filter(({ position, target }) => {
+      if (!target) return false;
+      if (category === 'recommended') {
+        return Boolean(target.recommended) && position.altitudeDeg >= 5;
+      }
+      if (category === 'seasonal') {
+        return Boolean(target.seasonalTags?.includes(season));
+      }
+      return target.category === category;
+    })
+    .sort((left, right) => {
+      if (category === 'recommended') return right.position.altitudeDeg - left.position.altitudeDeg;
+      const leftBelow = left.position.altitudeDeg < 0 ? 1 : 0;
+      const rightBelow = right.position.altitudeDeg < 0 ? 1 : 0;
+      return leftBelow - rightBelow;
+    });
+
   return (
     <section className="page-panel targets-page">
+      <div className="target-category-strip" aria-label="対象カテゴリ">
+        {TARGET_CATEGORIES.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className={category === item.id ? 'active' : ''}
+            onClick={() => setCategory(item.id)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
       <button type="button" className={`target-row clear ${selectedTargetId === null ? 'selected' : ''}`} onClick={onClear}>
         <strong>選択なし</strong>
         <span>天体を選ばずに空を見る</span>
       </button>
-      {positions.map((position) => {
-        const target = TARGETS.find((item) => item.id === position.id);
+      {visiblePositions.length === 0 && (
+        <div className="target-empty">今は表示できるおすすめが少ないです。別のカテゴリを見てください。</div>
+      )}
+      {visiblePositions.map(({ position, target }) => {
         const status = getAltitudeStatus(position.altitudeDeg);
         const selected = selectedTargetId === position.id;
 
@@ -1347,15 +1399,25 @@ function TargetsPage({
           >
             <span className="target-color" style={{ background: target?.color }} />
             <strong>{target?.label ?? position.id}</strong>
+            <span>{getKindLabel(target)}</span>
             <span>{formatDirection(position.azimuthDeg)}</span>
             <span>方位 {Math.round(position.azimuthDeg)}°</span>
             <span>高度 {Math.round(position.altitudeDeg)}°</span>
             <span className="target-status">{getAltitudeStatusLabel(status)}</span>
+            {target?.descriptionJa && <small>{target.descriptionJa}</small>}
           </button>
         );
       })}
     </section>
   );
+}
+
+function getCurrentSeason(): 'spring' | 'summer' | 'autumn' | 'winter' {
+  const month = new Date().getMonth() + 1;
+  if (month >= 3 && month <= 5) return 'spring';
+  if (month >= 6 && month <= 8) return 'summer';
+  if (month >= 9 && month <= 11) return 'autumn';
+  return 'winter';
 }
 
 function SessionPage({
@@ -1402,7 +1464,7 @@ function SessionPage({
   const [joinCode, setJoinCode] = useState('');
   const [entryMode, setEntryMode] = useState<'choose' | 'join' | 'create'>('choose');
   const [joinMethod, setJoinMethod] = useState<'none' | 'qr' | 'code'>('none');
-  const sharedTarget = TARGETS.find((target) => target.id === sharedTargetId);
+  const sharedTarget = getTargetDefinition(sharedTargetId);
   const sharingEnabled = shareMode !== 'off';
   const connectionLabel =
     connectionStatus === 'connected'

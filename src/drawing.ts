@@ -246,6 +246,31 @@ export function drawTargetObject(
 
   if (target?.id === 'moon') {
     drawMoonPhase(context, position, x, y, radius, nightMode);
+  } else if (target?.kind === 'messier') {
+    context.strokeStyle = color;
+    context.lineWidth = selected ? 1.8 : 1.1;
+    context.beginPath();
+    context.arc(x, y, radius + 1.2, 0, Math.PI * 2);
+    context.stroke();
+    context.beginPath();
+    context.arc(x, y, Math.max(1, radius * 0.42), 0, Math.PI * 2);
+    context.fillStyle = color;
+    context.fill();
+  } else if (target?.kind === 'double_star') {
+    context.fillStyle = color;
+    context.beginPath();
+    context.arc(x - radius * 0.42, y, Math.max(1.1, radius * 0.52), 0, Math.PI * 2);
+    context.arc(x + radius * 0.42, y, Math.max(1.1, radius * 0.52), 0, Math.PI * 2);
+    context.fill();
+  } else if (target?.kind === 'landmark') {
+    context.strokeStyle = color;
+    context.lineWidth = selected ? 1.8 : 1.1;
+    context.beginPath();
+    context.moveTo(x - radius, y);
+    context.lineTo(x + radius, y);
+    context.moveTo(x, y - radius);
+    context.lineTo(x, y + radius);
+    context.stroke();
   } else {
     context.fillStyle = color;
     context.beginPath();
