@@ -87,6 +87,7 @@ This file records implementation work and notable design changes so progress can
 - Added final public-test sensor calibration controls: normal UI hides zenith completely, Settings can set the current orientation as altitude 0, invert altitude for reversed devices, and inspect raw/final altitude values; docs now cover old Android GitHub Pages certificate failures and backup frontend options.
 - Fixed final sensor test issues by resetting the altitude calibration key/default, throttling orientation events, preferring `deviceorientationabsolute` over duplicate relative events, damping sensor motion further, and making bottom-sheet pages scrollable on mobile.
 - Removed user-set horizon calibration to avoid setup mistakes, restored faster Sensor Mode response, and switched azimuth back to heading/alpha-based estimation to avoid tilt-compensation flips at steep phone angles.
+- Changed Sensor Mode altitude to treat screen-up as zenith and added a guard that ignores sudden 120-degree azimuth flips from unstable device orientation events.
 
 ## Ongoing Rule
 

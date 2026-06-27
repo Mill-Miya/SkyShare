@@ -151,10 +151,10 @@ function estimateSensorView(event: DeviceOrientationEvent) {
       : alpha !== null
         ? normalizeAzimuth(360 - alpha)
         : null;
-  // In portrait use, beta works as the front-back tilt: horizon is near 0,
-  // pointing upward increases beta, and pointing downward decreases it.
-  // Keeping the sign avoids the abs() fold that caused horizon suction and high-altitude flips.
-  const estimatedAltitudeDeg = beta !== null ? clamp(beta, -90, 90) : null;
+  // Treat the phone screen normal as the viewing direction: screen-up is zenith,
+  // and an upright portrait phone is near the horizon. Some devices flip beta
+  // sign around vertical, so use magnitude here and keep inversion as a manual fallback.
+  const estimatedAltitudeDeg = beta !== null ? clamp(90 - Math.abs(beta), -90, 90) : null;
 
   return { estimatedAzimuthDeg, estimatedAltitudeDeg };
 }
@@ -969,10 +969,13 @@ function App() {
           altitudeDeg: current.centerAltitudeDeg,
         };
         const highAltitude = Math.abs(previous.altitudeDeg) > 78 || Math.abs(correctedAltitudeDeg) > 78;
+        const azimuthDeltaDeg = shortestAzimuthDelta(estimatedAzimuthDeg, previous.azimuthDeg);
+        const suspiciousAzimuthFlip =
+          Math.abs(azimuthDeltaDeg) > 120 && Math.abs(correctedAltitudeDeg - previous.altitudeDeg) < 35;
         const azimuthSmoothing = highAltitude ? 0.16 : 0.22;
         const altitudeSmoothing = 0.24;
         const azimuthStep = limitedSensorStep(
-          shortestAzimuthDelta(estimatedAzimuthDeg, previous.azimuthDeg),
+          suspiciousAzimuthFlip ? 0 : azimuthDeltaDeg,
           azimuthSmoothing,
           highAltitude ? 9 : 14,
         );
