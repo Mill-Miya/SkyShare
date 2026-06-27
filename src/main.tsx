@@ -38,6 +38,12 @@ const FALLBACK_LOCATION: ObserverLocation = {
 
 const SHEET_ANIMATION_MS = 220;
 const VIEW_ANIMATION_MS = 720;
+const DEFAULT_PUBLIC_API_BASE_URL = 'https://skyshare-nhcb.onrender.com';
+const DEFAULT_PUBLIC_WS_URL = 'wss://skyshare-nhcb.onrender.com/ws';
+
+function isGitHubPagesHost() {
+  return window.location.hostname === 'mill-miya.github.io';
+}
 
 function joinUrlPath(sessionId: string) {
   const basePath = import.meta.env.BASE_URL || '/';
@@ -45,7 +51,7 @@ function joinUrlPath(sessionId: string) {
 }
 
 function getWebSocketUrl() {
-  const configuredUrl = import.meta.env.VITE_WS_URL;
+  const configuredUrl = import.meta.env.VITE_WS_URL || (isGitHubPagesHost() ? DEFAULT_PUBLIC_WS_URL : '');
   if (configuredUrl) {
     const url = new URL(configuredUrl);
     if (url.pathname === '/' || url.pathname === '') {
@@ -60,7 +66,7 @@ function getWebSocketUrl() {
 }
 
 function getApiUrl(path: string) {
-  const configuredBase = import.meta.env.VITE_API_BASE_URL;
+  const configuredBase = import.meta.env.VITE_API_BASE_URL || (isGitHubPagesHost() ? DEFAULT_PUBLIC_API_BASE_URL : '');
   if (!configuredBase) return path;
 
   const url = new URL(configuredBase);
