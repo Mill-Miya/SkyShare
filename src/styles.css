@@ -432,7 +432,10 @@ input {
 
 .page-panel {
   min-height: 0;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(max(16px, env(safe-area-inset-bottom)) + 16px);
 }
 
 .sheet-layer {
@@ -455,6 +458,7 @@ input {
 
 .bottom-sheet {
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 10px;
   width: 100%;
   max-height: min(72dvh, 560px);
@@ -493,7 +497,11 @@ input {
 
 .bottom-sheet .page-panel {
   min-height: 0;
-  overflow: auto;
+  max-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 @keyframes sheet-in {
@@ -995,6 +1003,10 @@ input {
   color: #f4f1df;
   background: rgba(244, 241, 223, 0.08);
   font-weight: 700;
+}
+
+.settings-page .sensor-permission-button {
+  width: calc(100% - 24px);
 }
 
 .night-mode .sensor-permission-button {

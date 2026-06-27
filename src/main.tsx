@@ -40,9 +40,9 @@ const SHEET_ANIMATION_MS = 220;
 const VIEW_ANIMATION_MS = 720;
 const DEFAULT_PUBLIC_API_BASE_URL = 'https://skyshare-nhcb.onrender.com';
 const DEFAULT_PUBLIC_WS_URL = 'wss://skyshare-nhcb.onrender.com/ws';
-const SENSOR_ALTITUDE_OFFSET_KEY = 'sorava.sensor.altitudeOffsetDeg';
+const SENSOR_ALTITUDE_OFFSET_KEY = 'sorava.sensor.altitudeOffsetDeg.v2';
 const SENSOR_INVERT_ALTITUDE_KEY = 'sorava.sensor.invertAltitude';
-const DEFAULT_SENSOR_ALTITUDE_OFFSET_DEG = 90;
+const DEFAULT_SENSOR_ALTITUDE_OFFSET_DEG = 0;
 
 function isGitHubPagesHost() {
   return window.location.hostname === 'mill-miya.github.io';
@@ -523,6 +523,8 @@ function App() {
   const viewAnimationRef = useRef<number | null>(null);
   const lastPointerSendRef = useRef<{ azimuthDeg: number; altitudeDeg: number; time: number } | null>(null);
   const smoothedSensorViewRef = useRef<{ azimuthDeg: number; altitudeDeg: number } | null>(null);
+  const lastSensorEventAtRef = useRef(0);
+  const lastAbsoluteSensorEventAtRef = useRef(0);
 
   const debug = useMemo(() => new URLSearchParams(window.location.search).get('debug') === '1', []);
 
@@ -991,6 +993,17 @@ function App() {
       event: DeviceOrientationEvent,
       eventType: SensorProbeState['eventType'] = 'deviceorientation',
     ) => {
+      const now = performance.now();
+      if (eventType === 'deviceorientationabsolute') {
+        lastAbsoluteSensorEventAtRef.current = now;
+      } else if (now - lastAbsoluteSensorEventAtRef.current < 1000) {
+        return;
+      }
+      if (now - lastSensorEventAtRef.current < 50) {
+        return;
+      }
+      lastSensorEventAtRef.current = now;
+
       const { estimatedAzimuthDeg, estimatedAltitudeDeg: rawEstimatedAltitudeDeg } = estimateSensorView(event);
       const correctedAltitudeDeg =
         rawEstimatedAltitudeDeg === null
@@ -1026,14 +1039,14 @@ function App() {
           altitudeDeg: current.centerAltitudeDeg,
         };
         const highAltitude = Math.abs(previous.altitudeDeg) > 72 || Math.abs(correctedAltitudeDeg) > 72;
-        const azimuthSmoothing = highAltitude ? 0.045 : 0.12;
-        const altitudeSmoothing = 0.14;
+        const azimuthSmoothing = highAltitude ? 0.035 : 0.075;
+        const altitudeSmoothing = 0.1;
         const azimuthStep = limitedSensorStep(
           shortestAzimuthDelta(estimatedAzimuthDeg, previous.azimuthDeg),
           azimuthSmoothing,
-          highAltitude ? 3.5 : 7,
+          highAltitude ? 2.4 : 4.5,
         );
-        const altitudeStep = limitedSensorStep(correctedAltitudeDeg - previous.altitudeDeg, altitudeSmoothing, 5);
+        const altitudeStep = limitedSensorStep(correctedAltitudeDeg - previous.altitudeDeg, altitudeSmoothing, 3.6);
         const nextAzimuthDeg = normalizeAzimuth(
           previous.azimuthDeg + azimuthStep,
         );
