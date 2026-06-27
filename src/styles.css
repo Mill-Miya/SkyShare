@@ -1011,6 +1011,20 @@ input {
   width: calc(100% - 24px);
 }
 
+.admin-panel {
+  display: grid;
+  gap: 8px;
+  margin: 4px 12px;
+}
+
+.admin-panel .session-input-row input {
+  text-transform: none;
+}
+
+.admin-panel .secondary-action {
+  width: 100%;
+}
+
 .night-mode .sensor-permission-button {
   border-color: rgba(255, 92, 72, 0.28);
   color: #ff7b6b;

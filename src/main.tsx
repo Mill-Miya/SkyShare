@@ -40,8 +40,9 @@ const SHEET_ANIMATION_MS = 220;
 const VIEW_ANIMATION_MS = 720;
 const DEFAULT_PUBLIC_API_BASE_URL = 'https://skyshare-nhcb.onrender.com';
 const DEFAULT_PUBLIC_WS_URL = 'wss://skyshare-nhcb.onrender.com/ws';
-const SENSOR_INVERT_ALTITUDE_KEY = 'sorava.sensor.invertAltitude.v2';
-const DEFAULT_SENSOR_INVERT_ALTITUDE = true;
+const SENSOR_INVERT_ALTITUDE_KEY = 'sorava.sensor.invertAltitude.v3';
+const DEFAULT_SENSOR_INVERT_ALTITUDE = false;
+const SETTINGS_ADMIN_PASSCODE = 'sorava';
 
 function isGitHubPagesHost() {
   return window.location.hostname === 'mill-miya.github.io';
@@ -152,8 +153,8 @@ function estimateSensorView(event: DeviceOrientationEvent) {
       : alpha !== null
         ? normalizeAzimuth(360 - alpha)
         : null;
-  // Raw altitude is negative when the screen points upward. The app defaults to
-  // inverting this so screen-up becomes zenith while keeping a debug fallback.
+  // Raw altitude is based on the screen normal. Some devices invert this axis,
+  // so the admin panel keeps a manual fallback without exposing it to guests.
   const estimatedAltitudeDeg = beta !== null ? clamp(Math.abs(beta) - 90, -90, 90) : null;
 
   return { estimatedAzimuthDeg, estimatedAltitudeDeg };
@@ -1182,12 +1183,9 @@ function App() {
                 showAltitudeGuide={showAltitudeGuide}
                 sensorProbe={sensorProbe}
                 invertSensorAltitude={invertSensorAltitude}
-                canRequestSensorPermission={canRequestDeviceOrientationPermission()}
-                debug={debug}
                 onNightModeChange={setNightMode}
                 onShowAuroraChange={setShowAurora}
                 onShowAltitudeGuideChange={setShowAltitudeGuide}
-                onRequestSensorPermission={requestSensorPermission}
                 onInvertSensorAltitudeChange={setInvertSensorAltitude}
               />
             )}
@@ -1638,12 +1636,9 @@ function SettingsPage({
   showAltitudeGuide,
   sensorProbe,
   invertSensorAltitude,
-  canRequestSensorPermission,
-  debug,
   onNightModeChange,
   onShowAuroraChange,
   onShowAltitudeGuideChange,
-  onRequestSensorPermission,
   onInvertSensorAltitudeChange,
 }: {
   nightMode: boolean;
@@ -1651,14 +1646,14 @@ function SettingsPage({
   showAltitudeGuide: boolean;
   sensorProbe: SensorProbeState;
   invertSensorAltitude: boolean;
-  canRequestSensorPermission: boolean;
-  debug: boolean;
   onNightModeChange: (enabled: boolean) => void;
   onShowAuroraChange: (enabled: boolean) => void;
   onShowAltitudeGuideChange: (enabled: boolean) => void;
-  onRequestSensorPermission: () => Promise<boolean>;
   onInvertSensorAltitudeChange: (enabled: boolean) => void;
 }) {
+  const [adminPasscode, setAdminPasscode] = useState('');
+  const [adminUnlocked, setAdminUnlocked] = useState(false);
+  const [adminError, setAdminError] = useState(false);
   const formatSensorValue = (value: number | null) => (value === null ? '--' : value.toFixed(1));
   const permissionLabel =
     sensorProbe.permissionState === 'unsupported'
@@ -1670,6 +1665,17 @@ function SettingsPage({
           : sensorProbe.permissionState === 'denied'
             ? '拒否'
             : 'エラー';
+
+  function unlockAdminPanel(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (adminPasscode === SETTINGS_ADMIN_PASSCODE) {
+      setAdminUnlocked(true);
+      setAdminError(false);
+      setAdminPasscode('');
+      return;
+    }
+    setAdminError(true);
+  }
 
   return (
     <section className="page-panel settings-page">
@@ -1689,8 +1695,37 @@ function SettingsPage({
         <input type="checkbox" checked={showAurora} onChange={(event) => onShowAuroraChange(event.target.checked)} />
       </label>
 
-      {debug && (
+      {!adminUnlocked && (
+        <form className="admin-panel" onSubmit={unlockAdminPanel}>
+          <label className="session-input-row">
+            <span>管理</span>
+            <input
+              type="password"
+              value={adminPasscode}
+              onChange={(event) => {
+                setAdminPasscode(event.target.value);
+                setAdminError(false);
+              }}
+              placeholder="pass"
+              autoComplete="off"
+            />
+          </label>
+          <button type="submit" className="secondary-action">
+            開く
+          </button>
+          {adminError && <div className="session-error">passが違います</div>}
+        </form>
+      )}
+
+      {adminUnlocked && (
         <>
+          <div className="admin-panel">
+            <div className="settings-note">管理者表示</div>
+            <button type="button" className="secondary-action" onClick={() => setAdminUnlocked(false)}>
+              閉じる
+            </button>
+          </div>
+
           <label className="toggle-row">
             <span>
               <strong>Debug天頂</strong>
@@ -1702,12 +1737,6 @@ function SettingsPage({
               onChange={(event) => onShowAltitudeGuideChange(event.target.checked)}
             />
           </label>
-
-          {canRequestSensorPermission && sensorProbe.permissionState !== 'granted' && (
-            <button type="button" className="sensor-permission-button" onClick={onRequestSensorPermission}>
-              センサーを許可
-            </button>
-          )}
 
           <label className="toggle-row">
             <span>
@@ -1770,9 +1799,6 @@ function SettingsPage({
         </>
       )}
 
-      <div className="settings-note">
-        追従の切替はSky右上。センサーが不安定な端末では手動で使えます。
-      </div>
     </section>
   );
 }
