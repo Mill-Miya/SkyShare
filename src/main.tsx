@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client';
 import QRCode from 'qrcode';
 import {
   TARGET_CATEGORIES,
-  calculateLandmarkLines,
   calculateStars,
   calculateTargets,
   getKindLabel,
@@ -13,7 +12,6 @@ import {
   clamp,
   drawAurora,
   drawGroundAndMountains,
-  drawLandmarkLines,
   drawStars,
   drawTargetObject,
   getZoomBounds,
@@ -31,7 +29,6 @@ import type {
   ShareMode,
   SharedPointer,
   StarPosition,
-  LandmarkLinePosition,
   TargetId,
   TargetCategory,
   TargetPosition,
@@ -178,7 +175,6 @@ function limitedSensorStep(delta: number, smoothing: number, maxStepDeg: number)
 function SkyCanvas({
   positions,
   stars,
-  landmarkLines,
   view,
   selectedTargetId,
   nightMode,
@@ -189,10 +185,10 @@ function SkyCanvas({
   onViewChange,
   onMetricsChange,
   onInteractionStart,
+  onManualGesture,
 }: {
   positions: TargetPosition[];
   stars: StarPosition[];
-  landmarkLines: LandmarkLinePosition[];
   view: ViewState;
   selectedTargetId: TargetId | null;
   nightMode: boolean;
@@ -203,8 +199,10 @@ function SkyCanvas({
   onViewChange: React.Dispatch<React.SetStateAction<ViewState>>;
   onMetricsChange: (metrics: ViewMetrics) => void;
   onInteractionStart: () => void;
+  onManualGesture: () => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const manualGestureRef = useRef(false);
   const gestureRef = useRef<{
     pointers: Map<number, { x: number; y: number }>;
     lastCenter?: { x: number; y: number };
@@ -253,7 +251,6 @@ function SkyCanvas({
     const horizonY = centerY + view.centerAltitudeDeg * pxPerDeg;
 
     drawStars(context, width, height, view, pxPerDeg, stars, nightMode);
-    drawLandmarkLines(context, width, height, view, pxPerDeg, landmarkLines, nightMode);
     drawAurora(context, width, height, horizonY, view, nightMode, showAurora);
 
     if (showAltitudeGuide && debug) {
@@ -389,7 +386,7 @@ function SkyCanvas({
       context.font = selected ? '700 13px system-ui, sans-serif' : '600 12px system-ui, sans-serif';
       context.fillText(target?.label ?? position.id, x, y - radius - 12);
     });
-  }, [debug, landmarkLines, nightMode, onMetricsChange, positions, selectedTargetId, showAltitudeGuide, showAurora, stars, view]);
+  }, [debug, nightMode, onMetricsChange, positions, selectedTargetId, showAltitudeGuide, showAurora, stars, view]);
 
   function getPointerInfo() {
     const pointers = [...gestureRef.current.pointers.values()];
@@ -410,7 +407,10 @@ function SkyCanvas({
       ref={canvasRef}
       className="sky-canvas"
       onPointerDown={(event) => {
-        if (sensorModeEnabled) return;
+        if (sensorModeEnabled) {
+          manualGestureRef.current = true;
+          onManualGesture();
+        }
         onInteractionStart();
         event.currentTarget.setPointerCapture(event.pointerId);
         gestureRef.current.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
@@ -419,7 +419,7 @@ function SkyCanvas({
         gestureRef.current.lastDistance = info?.distance;
       }}
       onPointerMove={(event) => {
-        if (sensorModeEnabled) return;
+        if (sensorModeEnabled && !manualGestureRef.current) return;
         if (!gestureRef.current.pointers.has(event.pointerId)) return;
         gestureRef.current.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
         const info = getPointerInfo();
@@ -448,12 +448,18 @@ function SkyCanvas({
       }}
       onPointerUp={(event) => {
         gestureRef.current.pointers.delete(event.pointerId);
+        if (gestureRef.current.pointers.size === 0) {
+          manualGestureRef.current = false;
+        }
         const info = getPointerInfo();
         gestureRef.current.lastCenter = info?.center;
         gestureRef.current.lastDistance = info?.distance;
       }}
       onPointerCancel={(event) => {
         gestureRef.current.pointers.delete(event.pointerId);
+        if (gestureRef.current.pointers.size === 0) {
+          manualGestureRef.current = false;
+        }
         const info = getPointerInfo();
         gestureRef.current.lastCenter = info?.center;
         gestureRef.current.lastDistance = info?.distance;
@@ -1067,11 +1073,6 @@ function App() {
     return calculateStars(location, time);
   }, [location, time]);
 
-  const landmarkLines = useMemo(() => {
-    if (!location) return [];
-    return calculateLandmarkLines(location, time);
-  }, [location, time]);
-
   const activeTargetId = sessionRole === 'guest' ? (shareMode === 'target' ? sharedTargetId : null) : selectedTargetId;
   const selectedPosition = positions.find((position) => position.id === activeTargetId) ?? null;
   const guidance: GuidanceState | null = selectedPosition ? calculateGuidance(selectedPosition, view) : null;
@@ -1093,7 +1094,6 @@ function App() {
         <SkyCanvas
           positions={positions}
           stars={stars}
-          landmarkLines={landmarkLines}
           view={view}
           selectedTargetId={activeTargetId}
           nightMode={nightMode}
@@ -1103,6 +1103,10 @@ function App() {
           debug={debug}
           onViewChange={setView}
           onInteractionStart={cancelViewAnimation}
+          onManualGesture={() => {
+            setSensorModeEnabled(false);
+            setSensorNotice(null);
+          }}
           onMetricsChange={(nextMetrics) => {
             setViewMetrics((current) => {
               if (

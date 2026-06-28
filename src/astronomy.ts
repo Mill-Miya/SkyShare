@@ -1,12 +1,5 @@
 import * as Astronomy from 'astronomy-engine';
-import type {
-  LandmarkLinePosition,
-  ObserverLocation,
-  StarPosition,
-  TargetCategory,
-  TargetDefinition,
-  TargetPosition,
-} from './types';
+import type { ObserverLocation, StarPosition, TargetCategory, TargetDefinition, TargetPosition } from './types';
 import { normalizeAzimuth } from './drawing';
 
 export const TARGETS: TargetDefinition[] = [
@@ -77,67 +70,6 @@ export const TARGET_CATEGORIES: Array<{ id: TargetCategory; label: string }> = [
   { id: 'double', label: '二重星' },
   { id: 'landmark', label: '目印' },
   { id: 'seasonal', label: '季節別' },
-];
-
-export const LANDMARK_LINES: Array<{
-  id: string;
-  label: string;
-  points: Array<{ raHours: number; decDeg: number }>;
-  closed?: boolean;
-}> = [
-  {
-    id: 'line_summer_triangle',
-    label: '夏の大三角',
-    points: [
-      { raHours: 18.615, decDeg: 38.783 },
-      { raHours: 19.846, decDeg: 8.868 },
-      { raHours: 20.691, decDeg: 45.28 },
-    ],
-    closed: true,
-  },
-  {
-    id: 'line_winter_triangle',
-    label: '冬の大三角',
-    points: [
-      { raHours: 6.752, decDeg: -16.716 },
-      { raHours: 7.655, decDeg: 5.225 },
-      { raHours: 5.919, decDeg: 7.407 },
-    ],
-    closed: true,
-  },
-  {
-    id: 'line_big_dipper',
-    label: '北斗七星',
-    points: [
-      { raHours: 11.063, decDeg: 61.751 },
-      { raHours: 11.031, decDeg: 56.382 },
-      { raHours: 11.897, decDeg: 53.695 },
-      { raHours: 12.257, decDeg: 57.032 },
-      { raHours: 12.901, decDeg: 55.959 },
-      { raHours: 13.399, decDeg: 54.925 },
-      { raHours: 13.792, decDeg: 49.313 },
-    ],
-  },
-  {
-    id: 'line_cassiopeia',
-    label: 'カシオペヤ座',
-    points: [
-      { raHours: 0.153, decDeg: 59.15 },
-      { raHours: 0.675, decDeg: 56.537 },
-      { raHours: 0.945, decDeg: 60.717 },
-      { raHours: 1.43, decDeg: 60.235 },
-      { raHours: 1.906, decDeg: 63.67 },
-    ],
-  },
-  {
-    id: 'line_orion_belt',
-    label: 'オリオン座三つ星',
-    points: [
-      { raHours: 5.533, decDeg: -0.299 },
-      { raHours: 5.604, decDeg: -1.202 },
-      { raHours: 5.679, decDeg: -1.943 },
-    ],
-  },
 ];
 
 const BRIGHT_STARS: Array<{ name: string; raHours: number; decDeg: number; magnitude: number }> = [
@@ -257,23 +189,6 @@ export function calculateStars(location: ObserverLocation, date: Date): StarPosi
       color: getStarColor(star.name),
     };
   });
-}
-
-export function calculateLandmarkLines(location: ObserverLocation, date: Date): LandmarkLinePosition[] {
-  const observer = new Astronomy.Observer(location.latitude, location.longitude, 0);
-
-  return LANDMARK_LINES.map((line) => ({
-    id: line.id,
-    label: line.label,
-    closed: line.closed,
-    points: line.points.map((point) => {
-      const horizon = Astronomy.Horizon(date, observer, point.raHours, point.decDeg, 'normal');
-      return {
-        azimuthDeg: normalizeAzimuth(horizon.azimuth),
-        altitudeDeg: horizon.altitude,
-      };
-    }),
-  }));
 }
 
 function getStarColor(name: string) {

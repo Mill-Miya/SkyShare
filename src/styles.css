@@ -1103,8 +1103,8 @@ input {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1px;
-  margin: 4px 12px 8px;
-  overflow: hidden;
+  margin: 4px 12px 28px;
+  overflow: visible;
   border: 1px solid rgba(244, 241, 223, 0.07);
   border-radius: 8px;
   background: rgba(244, 241, 223, 0.05);
@@ -1317,7 +1317,20 @@ input {
   .settings-page,
   .session-page {
     gap: 8px;
-    padding-bottom: calc(82px + env(safe-area-inset-bottom));
+    padding-bottom: calc(104px + env(safe-area-inset-bottom));
+  }
+
+  .admin-panel {
+    margin: 4px 2px;
+  }
+
+  .sensor-probe {
+    grid-template-columns: 1fr;
+    margin: 4px 2px calc(112px + env(safe-area-inset-bottom));
+  }
+
+  .sensor-probe div {
+    padding: 7px 8px;
   }
 
   .target-category-strip {
