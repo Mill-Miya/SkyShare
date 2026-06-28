@@ -50,7 +50,11 @@ const DEFAULT_PUBLIC_WS_URL = 'wss://skyshare-nhcb.onrender.com/ws';
 const SENSOR_INVERT_ALTITUDE_KEY = 'sorava.sensor.invertAltitude.v3';
 const DEFAULT_SENSOR_INVERT_ALTITUDE = false;
 const SETTINGS_ADMIN_PASSCODE = 'sorava';
-const GUEST_ACCESS_CODE = (import.meta.env.VITE_GUEST_ACCESS_CODE ?? '').trim();
+const DEFAULT_PUBLIC_GUEST_ACCESS_CODE = '0629';
+const GUEST_ACCESS_CODE = (
+  import.meta.env.VITE_GUEST_ACCESS_CODE ??
+  (isGitHubPagesHost() ? DEFAULT_PUBLIC_GUEST_ACCESS_CODE : '')
+).trim();
 const GUEST_UNLOCKED_KEY = 'sorava_guest_unlocked';
 const GUEST_REJECTED_KEY = 'sorava_guest_rejected';
 

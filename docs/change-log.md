@@ -98,6 +98,7 @@ This file records implementation work and notable design changes so progress can
 - Prevented automatic target centering while Sensor Follow is enabled and separated the Targets category strip from the clear-selection row to avoid overlap on phones.
 - Changed Sensor Follow so a swipe immediately returns to manual control, removed faint sky landmark lines, and made the admin Sensor Probe use a scroll-friendly single-column mobile layout.
 - Added a front-end Guest join PASS gate for `/join/{sessionId}` routes, with same-tab rejection stored in sessionStorage and no WebSocket/join attempt before a correct PASS.
+- Added a GitHub Pages fallback Guest PASS of `0629` so the public test URL asks for PASS even if the Actions variable is missing.
 
 ## Ongoing Rule
 
