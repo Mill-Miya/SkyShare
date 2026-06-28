@@ -1173,9 +1173,13 @@ function App() {
                   closeSheet();
                 }}
                 onSelect={(targetId, position) => {
-                  setGuidanceSuppressed(true);
                   setSelectedTargetId(targetId);
                   closeSheet();
+                  if (sensorModeEnabled) {
+                    setGuidanceSuppressed(false);
+                    return;
+                  }
+                  setGuidanceSuppressed(true);
                   window.setTimeout(
                     () => animateViewTo(position),
                     prefersReducedMotion() ? 0 : SHEET_ANIMATION_MS,
