@@ -118,6 +118,72 @@ input {
   touch-action: none;
 }
 
+.gate-shell {
+  grid-template-rows: minmax(0, 1fr);
+  place-items: center;
+}
+
+.guest-gate-card {
+  display: grid;
+  gap: 12px;
+  width: min(360px, calc(100% - 18px));
+  padding: 18px;
+  border: 1px solid rgba(244, 241, 223, 0.16);
+  border-radius: 8px;
+  background: rgba(244, 241, 223, 0.07);
+}
+
+.night-mode .guest-gate-card {
+  border-color: rgba(255, 88, 68, 0.22);
+  background: rgba(80, 0, 0, 0.22);
+}
+
+.guest-gate-card h1,
+.guest-gate-card p {
+  margin: 0;
+}
+
+.guest-gate-card h1 {
+  font-size: 22px;
+}
+
+.guest-gate-card p {
+  color: rgba(244, 241, 223, 0.74);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.night-mode .guest-gate-card p {
+  color: rgba(255, 123, 107, 0.74);
+}
+
+.guest-pass-form {
+  display: grid;
+  gap: 8px;
+}
+
+.guest-pass-form input,
+.guest-pass-form button {
+  min-height: 44px;
+  border: 1px solid rgba(244, 241, 223, 0.18);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.24);
+}
+
+.guest-pass-form input {
+  width: 100%;
+  padding: 8px 10px;
+}
+
+.guest-pass-form button {
+  background: rgba(255, 238, 170, 0.12);
+  font-weight: 800;
+}
+
+.guest-gate-card.rejected {
+  border-color: rgba(255, 129, 112, 0.32);
+}
+
 .view-readout {
   position: absolute;
   left: 10px;

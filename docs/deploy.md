@@ -134,6 +134,7 @@ Build Command: npm run build
 Output Directory: dist
 VITE_API_BASE_URL=https://skyshare-nhcb.onrender.com
 VITE_WS_URL=wss://skyshare-nhcb.onrender.com/ws
+VITE_GUEST_ACCESS_CODE=0629
 ```
 
 GitHub Pagesでは `GITHUB_PAGES=true` によりbase pathが `/SkyShare/` になります。Vercel / Netlify / Render Static Siteでは通常 `GITHUB_PAGES` を設定せず、base path `/` で公開してください。
@@ -153,9 +154,12 @@ Repository variablesに以下を設定してください。
 ```text
 SORAVA_API_BASE_URL=https://skyshare-nhcb.onrender.com
 SORAVA_WS_URL=wss://skyshare-nhcb.onrender.com/ws
+VITE_GUEST_ACCESS_CODE=0629
 ```
 
 `SORAVA_WS_URL` は以下のように `/ws` なしでも動きますが、明示的に `/ws` まで入れることを推奨します。
+
+`VITE_GUEST_ACCESS_CODE` は部内テスト用の簡易Guest参加PASSです。未設定の場合は従来通りPASSなしで `/join/{sessionId}` から参加できます。
 
 ```text
 wss://<render-service-name>.onrender.com

@@ -50,6 +50,14 @@ const DEFAULT_PUBLIC_WS_URL = 'wss://skyshare-nhcb.onrender.com/ws';
 const SENSOR_INVERT_ALTITUDE_KEY = 'sorava.sensor.invertAltitude.v3';
 const DEFAULT_SENSOR_INVERT_ALTITUDE = false;
 const SETTINGS_ADMIN_PASSCODE = 'sorava';
+const GUEST_ACCESS_CODE = (import.meta.env.VITE_GUEST_ACCESS_CODE ?? '').trim();
+const GUEST_UNLOCKED_KEY = 'sorava_guest_unlocked';
+const GUEST_REJECTED_KEY = 'sorava_guest_rejected';
+
+type GuestJoinGateState = {
+  status: 'none' | 'pass' | 'rejected';
+  sessionId: string | null;
+};
 
 function isGitHubPagesHost() {
   return window.location.hostname === 'mill-miya.github.io';
@@ -106,6 +114,34 @@ function readStoredBoolean(key: string, fallback: boolean) {
   } catch {
     return fallback;
   }
+}
+
+function readSessionFlag(key: string) {
+  try {
+    return window.sessionStorage.getItem(key) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function writeSessionFlag(key: string, value: boolean) {
+  try {
+    if (value) {
+      window.sessionStorage.setItem(key, 'true');
+    } else {
+      window.sessionStorage.removeItem(key);
+    }
+  } catch {
+    // sessionStorage can be unavailable in some private browsing modes.
+  }
+}
+
+function getInitialGuestJoinGate(): GuestJoinGateState {
+  const sessionId = getJoinSessionId();
+  if (!sessionId || !GUEST_ACCESS_CODE) return { status: 'none', sessionId };
+  if (readSessionFlag(GUEST_REJECTED_KEY)) return { status: 'rejected', sessionId };
+  if (readSessionFlag(GUEST_UNLOCKED_KEY)) return { status: 'none', sessionId };
+  return { status: 'pass', sessionId };
 }
 
 type SensorPermissionState = 'unsupported' | 'prompt' | 'granted' | 'denied' | 'error';
@@ -494,6 +530,8 @@ function App() {
   const [sensorModeEnabled, setSensorModeEnabled] = useState(false);
   const [sensorProbe, setSensorProbe] = useState<SensorProbeState>(() => initialSensorProbe());
   const [sensorNotice, setSensorNotice] = useState<string | null>(null);
+  const [guestJoinGate, setGuestJoinGate] = useState<GuestJoinGateState>(() => getInitialGuestJoinGate());
+  const [guestPassInput, setGuestPassInput] = useState('');
   const [invertSensorAltitude, setInvertSensorAltitude] = useState(() =>
     readStoredBoolean(SENSOR_INVERT_ALTITUDE_KEY, DEFAULT_SENSOR_INVERT_ALTITUDE),
   );
@@ -513,6 +551,8 @@ function App() {
   const smoothedSensorViewRef = useRef<{ azimuthDeg: number; altitudeDeg: number } | null>(null);
   const lastSensorEventAtRef = useRef(0);
   const lastAbsoluteSensorEventAtRef = useRef(0);
+
+  const guestJoinBlocked = guestJoinGate.status === 'pass' || guestJoinGate.status === 'rejected';
 
   const debug = useMemo(() => new URLSearchParams(window.location.search).get('debug') === '1', []);
 
@@ -812,6 +852,27 @@ function App() {
     setPage('session');
   }
 
+  function submitGuestPass(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const sessionId = guestJoinGate.sessionId;
+    if (!sessionId) return;
+
+    if (guestPassInput.trim() === GUEST_ACCESS_CODE) {
+      writeSessionFlag(GUEST_UNLOCKED_KEY, true);
+      writeSessionFlag(GUEST_REJECTED_KEY, false);
+      setGuestJoinGate({ status: 'none', sessionId });
+      setGuestPassInput('');
+      joinGuestSession(sessionId);
+      return;
+    }
+
+    writeSessionFlag(GUEST_UNLOCKED_KEY, false);
+    writeSessionFlag(GUEST_REJECTED_KEY, true);
+    setGuestPassInput('');
+    setGuestJoinGate({ status: 'rejected', sessionId });
+    setConnectionStatus('disconnected');
+  }
+
   function closeSheet() {
     if (page === 'sky') return;
     clearSheetCloseTimer();
@@ -896,6 +957,11 @@ function App() {
   }
 
   useEffect(() => {
+    if (guestJoinBlocked) {
+      setLocationStatus('参加PASSを確認してください');
+      return;
+    }
+
     if (!navigator.geolocation) {
       setLocation(FALLBACK_LOCATION);
       setLocationStatus('GPS非対応のため東京駅付近を使用');
@@ -917,14 +983,17 @@ function App() {
       },
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 300000 },
     );
-  }, []);
+  }, [guestJoinBlocked]);
 
   useEffect(() => {
     const joinSessionId = getJoinSessionId();
+    if (guestJoinGate.status !== 'none') return;
     if (joinSessionId) {
       joinGuestSession(joinSessionId);
     }
+  }, [guestJoinGate.status]);
 
+  useEffect(() => {
     return () => {
       clearReconnectTimer();
       clearSheetCloseTimer();
@@ -1077,6 +1146,21 @@ function App() {
   const selectedPosition = positions.find((position) => position.id === activeTargetId) ?? null;
   const guidance: GuidanceState | null = selectedPosition ? calculateGuidance(selectedPosition, view) : null;
   const selectedStatus = selectedPosition ? getAltitudeStatus(selectedPosition.altitudeDeg) : null;
+
+  if (guestJoinGate.status === 'rejected') {
+    return <GuestRejectedScreen nightMode={nightMode} />;
+  }
+
+  if (guestJoinGate.status === 'pass') {
+    return (
+      <GuestPassGate
+        nightMode={nightMode}
+        value={guestPassInput}
+        onChange={setGuestPassInput}
+        onSubmit={submitGuestPass}
+      />
+    );
+  }
 
   return (
     <main className={`app-shell ${nightMode ? 'night-mode' : ''}`}>
@@ -1245,6 +1329,50 @@ function App() {
           Settings
         </button>
       </nav>
+    </main>
+  );
+}
+
+function GuestPassGate({
+  nightMode,
+  value,
+  onChange,
+  onSubmit,
+}: {
+  nightMode: boolean;
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+}) {
+  return (
+    <main className={`app-shell gate-shell ${nightMode ? 'night-mode' : ''}`}>
+      <section className="guest-gate-card">
+        <h1>参加PASS</h1>
+        <p>観望会のPASSを入力してください。</p>
+        <form className="guest-pass-form" onSubmit={onSubmit}>
+          <input
+            type="password"
+            inputMode="numeric"
+            value={value}
+            onChange={(event) => onChange(event.target.value.trim())}
+            placeholder="PASS"
+            autoComplete="off"
+          />
+          <button type="submit">参加</button>
+        </form>
+      </section>
+    </main>
+  );
+}
+
+function GuestRejectedScreen({ nightMode }: { nightMode: boolean }) {
+  return (
+    <main className={`app-shell gate-shell ${nightMode ? 'night-mode' : ''}`}>
+      <section className="guest-gate-card rejected">
+        <h1>参加できません</h1>
+        <p>PASSが確認できませんでした。</p>
+        <p>もう一度参加する場合は、ブラウザを閉じてQRコードを読み直してください。</p>
+      </section>
     </main>
   );
 }
