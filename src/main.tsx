@@ -1415,15 +1415,21 @@ function TargetsPage({
             <span className="target-color" style={{ background: target?.color }} />
             <strong>{target?.label ?? position.id}</strong>
             <span className="target-meta">
-              {getKindLabel(target)} / {formatDirection(position.azimuthDeg)} / 方位 {Math.round(position.azimuthDeg)}° / 高度{' '}
+              {getKindLabel(target)} / {formatDirection(position.azimuthDeg)} / 方{Math.round(position.azimuthDeg)}° / 高{' '}
               {Math.round(position.altitudeDeg)}°
             </span>
-            <span className="target-status">{getAltitudeStatusLabel(status)}</span>
+            <span className="target-status">{getCompactAltitudeStatusLabel(status)}</span>
           </button>
         );
       })}
     </section>
   );
+}
+
+function getCompactAltitudeStatusLabel(status: ReturnType<typeof getAltitudeStatus>) {
+  if (status === 'below') return '地平下';
+  if (status === 'difficult') return '困難';
+  return '見やすい';
 }
 
 function getCurrentSeason(): 'spring' | 'summer' | 'autumn' | 'winter' {

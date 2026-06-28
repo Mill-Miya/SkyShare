@@ -94,6 +94,7 @@ This file records implementation work and notable design changes so progress can
 - Expanded Targets with category chips, bright stars, Messier objects, double stars, landmark targets, RA/Dec based client-side positions, Sky drawing, and server targetId validation for shared catalog targets.
 - Refined target catalog UI by hiding composite landmark targets from Targets, removing per-target descriptions, limiting Sky labels to selected/near-sightline targets, and smoothing the sensor altitude/azimuth behavior around mid altitudes.
 - Corrected the sensor altitude direction again for current field testing, tightened Targets row layout, added spacing below category chips, and drew major sky landmark lines faintly on the Sky canvas.
+- Added mobile-first responsive CSS for narrow phones, compressing the top bar, guidance panel, Targets rows, Session controls, Bottom Sheet height, and bottom navigation while preserving Sky canvas touch controls.
 
 ## Ongoing Rule
 
