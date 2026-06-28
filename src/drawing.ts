@@ -1,4 +1,4 @@
-import type { StarPosition, TargetDefinition, TargetPosition, ViewState } from './types';
+import type { LandmarkLinePosition, StarPosition, TargetDefinition, TargetPosition, ViewState } from './types';
 
 const INITIAL_HORIZONTAL_FOV_DEG = 56;
 const MAX_HORIZONTAL_FOV_DEG = 76;
@@ -53,6 +53,54 @@ export function drawStars(
   });
 
   context.shadowBlur = 0;
+}
+
+export function drawLandmarkLines(
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  view: ViewState,
+  pxPerDeg: number,
+  lines: LandmarkLinePosition[],
+  nightMode: boolean,
+) {
+  const centerX = width / 2;
+  const centerY = height / 2;
+
+  context.save();
+  context.lineWidth = 0.8;
+  context.strokeStyle = nightMode ? 'rgba(255, 92, 74, 0.16)' : 'rgba(190, 220, 255, 0.16)';
+
+  lines.forEach((line) => {
+    const projected = line.points.map((point) => ({
+      x: centerX + shortestAzimuthDelta(point.azimuthDeg, view.centerAzimuthDeg) * pxPerDeg,
+      y: centerY - (point.altitudeDeg - view.centerAltitudeDeg) * pxPerDeg,
+      visible: point.altitudeDeg >= -4,
+    }));
+    if (projected.filter((point) => point.visible).length < 2) return;
+
+    context.beginPath();
+    let started = false;
+    projected.forEach((point) => {
+      if (!point.visible || point.x < -80 || point.x > width + 80 || point.y < -80 || point.y > height + 80) {
+        started = false;
+        return;
+      }
+      if (!started) {
+        context.moveTo(point.x, point.y);
+        started = true;
+      } else {
+        context.lineTo(point.x, point.y);
+      }
+    });
+    if (line.closed && projected.every((point) => point.visible)) {
+      const first = projected[0];
+      context.lineTo(first.x, first.y);
+    }
+    context.stroke();
+  });
+
+  context.restore();
 }
 
 export function drawAurora(

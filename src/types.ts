@@ -60,6 +60,16 @@ export type TargetDefinition = {
   seasonalTags?: Array<'spring' | 'summer' | 'autumn' | 'winter'>;
 };
 
+export type LandmarkLinePosition = {
+  id: string;
+  label: string;
+  closed?: boolean;
+  points: Array<{
+    azimuthDeg: number;
+    altitudeDeg: number;
+  }>;
+};
+
 export type TargetKind = 'moon' | 'planet' | 'star' | 'messier' | 'double_star' | 'landmark';
 
 export type TargetCategory = 'recommended' | 'solar' | 'stars' | 'messier' | 'double' | 'landmark' | 'seasonal';

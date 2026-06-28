@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import QRCode from 'qrcode';
 import {
   TARGET_CATEGORIES,
+  calculateLandmarkLines,
   calculateStars,
   calculateTargets,
   getKindLabel,
@@ -12,6 +13,7 @@ import {
   clamp,
   drawAurora,
   drawGroundAndMountains,
+  drawLandmarkLines,
   drawStars,
   drawTargetObject,
   getZoomBounds,
@@ -29,6 +31,7 @@ import type {
   ShareMode,
   SharedPointer,
   StarPosition,
+  LandmarkLinePosition,
   TargetId,
   TargetCategory,
   TargetPosition,
@@ -160,8 +163,8 @@ function estimateSensorView(event: DeviceOrientationEvent) {
       : alpha !== null
         ? normalizeAzimuth(360 - alpha)
         : null;
-  // In portrait use, beta is around 90 near the horizon and approaches 0
-  // as the screen faces upward, so 90 - abs(beta) gives a practical altitude.
+  // Current test devices report beta near 90 at the horizon and closer to 0
+  // when aiming upward, so 90 - abs(beta) follows the visible sky direction.
   const estimatedAltitudeDeg = beta !== null ? clamp(90 - Math.abs(beta), -90, 90) : null;
 
   return { estimatedAzimuthDeg, estimatedAltitudeDeg };
@@ -175,6 +178,7 @@ function limitedSensorStep(delta: number, smoothing: number, maxStepDeg: number)
 function SkyCanvas({
   positions,
   stars,
+  landmarkLines,
   view,
   selectedTargetId,
   nightMode,
@@ -188,6 +192,7 @@ function SkyCanvas({
 }: {
   positions: TargetPosition[];
   stars: StarPosition[];
+  landmarkLines: LandmarkLinePosition[];
   view: ViewState;
   selectedTargetId: TargetId | null;
   nightMode: boolean;
@@ -248,6 +253,7 @@ function SkyCanvas({
     const horizonY = centerY + view.centerAltitudeDeg * pxPerDeg;
 
     drawStars(context, width, height, view, pxPerDeg, stars, nightMode);
+    drawLandmarkLines(context, width, height, view, pxPerDeg, landmarkLines, nightMode);
     drawAurora(context, width, height, horizonY, view, nightMode, showAurora);
 
     if (showAltitudeGuide && debug) {
@@ -383,7 +389,7 @@ function SkyCanvas({
       context.font = selected ? '700 13px system-ui, sans-serif' : '600 12px system-ui, sans-serif';
       context.fillText(target?.label ?? position.id, x, y - radius - 12);
     });
-  }, [debug, nightMode, onMetricsChange, positions, selectedTargetId, showAltitudeGuide, showAurora, stars, view]);
+  }, [debug, landmarkLines, nightMode, onMetricsChange, positions, selectedTargetId, showAltitudeGuide, showAurora, stars, view]);
 
   function getPointerInfo() {
     const pointers = [...gestureRef.current.pointers.values()];
@@ -1061,6 +1067,11 @@ function App() {
     return calculateStars(location, time);
   }, [location, time]);
 
+  const landmarkLines = useMemo(() => {
+    if (!location) return [];
+    return calculateLandmarkLines(location, time);
+  }, [location, time]);
+
   const activeTargetId = sessionRole === 'guest' ? (shareMode === 'target' ? sharedTargetId : null) : selectedTargetId;
   const selectedPosition = positions.find((position) => position.id === activeTargetId) ?? null;
   const guidance: GuidanceState | null = selectedPosition ? calculateGuidance(selectedPosition, view) : null;
@@ -1082,6 +1093,7 @@ function App() {
         <SkyCanvas
           positions={positions}
           stars={stars}
+          landmarkLines={landmarkLines}
           view={view}
           selectedTargetId={activeTargetId}
           nightMode={nightMode}
@@ -1402,10 +1414,10 @@ function TargetsPage({
           >
             <span className="target-color" style={{ background: target?.color }} />
             <strong>{target?.label ?? position.id}</strong>
-            <span>{getKindLabel(target)}</span>
-            <span>{formatDirection(position.azimuthDeg)}</span>
-            <span>方位 {Math.round(position.azimuthDeg)}°</span>
-            <span>高度 {Math.round(position.altitudeDeg)}°</span>
+            <span className="target-meta">
+              {getKindLabel(target)} / {formatDirection(position.azimuthDeg)} / 方位 {Math.round(position.azimuthDeg)}° / 高度{' '}
+              {Math.round(position.altitudeDeg)}°
+            </span>
             <span className="target-status">{getAltitudeStatusLabel(status)}</span>
           </button>
         );
