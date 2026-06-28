@@ -100,6 +100,7 @@ This file records implementation work and notable design changes so progress can
 - Added a front-end Guest join PASS gate for `/join/{sessionId}` routes, with same-tab rejection stored in sessionStorage and no WebSocket/join attempt before a correct PASS.
 - Added a GitHub Pages fallback Guest PASS of `0629` so the public test URL asks for PASS even if the Actions variable is missing.
 - Changed the PASS gate to appear on initial site access, not only on `/join/{sessionId}`, while still auto-joining after a correct PASS on join URLs.
+- Fixed the public PASS fallback so an empty `VITE_GUEST_ACCESS_CODE` from GitHub Actions still falls back to `0629` on GitHub Pages.
 
 ## Ongoing Rule
 

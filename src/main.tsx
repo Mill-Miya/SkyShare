@@ -51,10 +51,10 @@ const SENSOR_INVERT_ALTITUDE_KEY = 'sorava.sensor.invertAltitude.v3';
 const DEFAULT_SENSOR_INVERT_ALTITUDE = false;
 const SETTINGS_ADMIN_PASSCODE = 'sorava';
 const DEFAULT_PUBLIC_GUEST_ACCESS_CODE = '0629';
-const GUEST_ACCESS_CODE = (
-  import.meta.env.VITE_GUEST_ACCESS_CODE ??
-  (isGitHubPagesHost() ? DEFAULT_PUBLIC_GUEST_ACCESS_CODE : '')
-).trim();
+const CONFIGURED_GUEST_ACCESS_CODE = import.meta.env.VITE_GUEST_ACCESS_CODE?.trim() ?? '';
+const GUEST_ACCESS_CODE = CONFIGURED_GUEST_ACCESS_CODE || (
+  isGitHubPagesHost() ? DEFAULT_PUBLIC_GUEST_ACCESS_CODE : ''
+);
 const GUEST_UNLOCKED_KEY = 'sorava_guest_unlocked';
 const GUEST_REJECTED_KEY = 'sorava_guest_rejected';
 
