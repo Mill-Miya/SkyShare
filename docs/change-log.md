@@ -99,6 +99,7 @@ This file records implementation work and notable design changes so progress can
 - Changed Sensor Follow so a swipe immediately returns to manual control, removed faint sky landmark lines, and made the admin Sensor Probe use a scroll-friendly single-column mobile layout.
 - Added a front-end Guest join PASS gate for `/join/{sessionId}` routes, with same-tab rejection stored in sessionStorage and no WebSocket/join attempt before a correct PASS.
 - Added a GitHub Pages fallback Guest PASS of `0629` so the public test URL asks for PASS even if the Actions variable is missing.
+- Changed the PASS gate to appear on initial site access, not only on `/join/{sessionId}`, while still auto-joining after a correct PASS on join URLs.
 
 ## Ongoing Rule
 

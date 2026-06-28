@@ -142,7 +142,7 @@ function writeSessionFlag(key: string, value: boolean) {
 
 function getInitialGuestJoinGate(): GuestJoinGateState {
   const sessionId = getJoinSessionId();
-  if (!sessionId || !GUEST_ACCESS_CODE) return { status: 'none', sessionId };
+  if (!GUEST_ACCESS_CODE) return { status: 'none', sessionId };
   if (readSessionFlag(GUEST_REJECTED_KEY)) return { status: 'rejected', sessionId };
   if (readSessionFlag(GUEST_UNLOCKED_KEY)) return { status: 'none', sessionId };
   return { status: 'pass', sessionId };
@@ -866,7 +866,9 @@ function App() {
       writeSessionFlag(GUEST_REJECTED_KEY, false);
       setGuestJoinGate({ status: 'none', sessionId });
       setGuestPassInput('');
-      joinGuestSession(sessionId);
+      if (sessionId) {
+        joinGuestSession(sessionId);
+      }
       return;
     }
 
@@ -1351,8 +1353,8 @@ function GuestPassGate({
   return (
     <main className={`app-shell gate-shell ${nightMode ? 'night-mode' : ''}`}>
       <section className="guest-gate-card">
-        <h1>参加PASS</h1>
-        <p>観望会のPASSを入力してください。</p>
+        <h1>利用PASS</h1>
+        <p>SoravaのPASSを入力してください。</p>
         <form className="guest-pass-form" onSubmit={onSubmit}>
           <input
             type="password"

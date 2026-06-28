@@ -10,7 +10,8 @@
 - [ ] 不正なOriginを制限する場合、`ALLOWED_ORIGINS` が正しい
 - [ ] QRコードが表示される
 - [ ] 参加URLが開ける
-- [ ] Guest参加PASSが設定されている場合、`/join/{sessionId}` でPASS入力画面が出る
+- [ ] PASSが設定されている場合、トップページアクセス時点でPASS入力画面が出る
+- [ ] `/join/{sessionId}` では正しいPASS入力後にGuest参加へ進む
 
 ## Host
 
