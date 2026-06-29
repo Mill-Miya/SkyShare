@@ -1919,6 +1919,18 @@ function SettingsPage({
         <input type="checkbox" checked={showAurora} onChange={(event) => onShowAuroraChange(event.target.checked)} />
       </label>
 
+      <label className="toggle-row">
+        <span>
+          <strong>上下反転</strong>
+          <small>追従時に上向き/下向きが逆ならON</small>
+        </span>
+        <input
+          type="checkbox"
+          checked={invertSensorAltitude}
+          onChange={(event) => onInvertSensorAltitudeChange(event.target.checked)}
+        />
+      </label>
+
       {!adminUnlocked && (
         <form className="admin-panel" onSubmit={unlockAdminPanel}>
           <label className="session-input-row">
@@ -1959,18 +1971,6 @@ function SettingsPage({
               type="checkbox"
               checked={showAltitudeGuide}
               onChange={(event) => onShowAltitudeGuideChange(event.target.checked)}
-            />
-          </label>
-
-          <label className="toggle-row">
-            <span>
-              <strong>高度反転</strong>
-              <small>上向き/下向きが逆に動く場合にON</small>
-            </span>
-            <input
-              type="checkbox"
-              checked={invertSensorAltitude}
-              onChange={(event) => onInvertSensorAltitudeChange(event.target.checked)}
             />
           </label>
 
