@@ -105,6 +105,7 @@ This file records implementation work and notable design changes so progress can
 - Adjusted the Targets `選択なし` row so it no longer inherits the normal target row's two-column placement on narrow iPhone screens.
 - Fixed the PASS submit path so the plain GitHub Pages URL unlocks the app even when there is no `/join/{sessionId}` code in the address.
 - Simplified the Targets clear-selection row to a centered `選択なし` label with no secondary description text.
+- Added a switchable `field` UI theme for low-light observing use, with Settings theme selection, localStorage persistence, and isolated CSS overrides while keeping `classic` as the default.
 
 ## Ongoing Rule
 

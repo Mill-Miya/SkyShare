@@ -36,6 +36,7 @@ import type {
   ViewState,
 } from './types';
 import './styles.css';
+import './styles/theme-field.css';
 
 const FALLBACK_LOCATION: ObserverLocation = {
   latitude: 35.6812,
@@ -48,6 +49,7 @@ const VIEW_ANIMATION_MS = 720;
 const DEFAULT_PUBLIC_API_BASE_URL = 'https://skyshare-nhcb.onrender.com';
 const DEFAULT_PUBLIC_WS_URL = 'wss://skyshare-nhcb.onrender.com/ws';
 const SENSOR_INVERT_ALTITUDE_KEY = 'sorava.sensor.invertAltitude.v3';
+const UI_THEME_STORAGE_KEY = 'sorava-ui-theme';
 const DEFAULT_SENSOR_INVERT_ALTITUDE = false;
 const SETTINGS_ADMIN_PASSCODE = 'sorava';
 const DEFAULT_PUBLIC_GUEST_ACCESS_CODE = '0629';
@@ -62,6 +64,8 @@ type GuestJoinGateState = {
   status: 'none' | 'pass' | 'rejected';
   sessionId: string | null;
 };
+
+type UiTheme = 'classic' | 'field';
 
 function isGitHubPagesHost() {
   return window.location.hostname === 'mill-miya.github.io';
@@ -117,6 +121,15 @@ function readStoredBoolean(key: string, fallback: boolean) {
     return storedValue === 'true';
   } catch {
     return fallback;
+  }
+}
+
+function readStoredUiTheme(): UiTheme {
+  try {
+    const storedValue = window.localStorage.getItem(UI_THEME_STORAGE_KEY);
+    return storedValue === 'field' || storedValue === 'classic' ? storedValue : 'classic';
+  } catch {
+    return 'classic';
   }
 }
 
@@ -528,6 +541,7 @@ function App() {
   const [tabResetTick, setTabResetTick] = useState(0);
   const [sheetClosing, setSheetClosing] = useState(false);
   const [guidanceSuppressed, setGuidanceSuppressed] = useState(false);
+  const [uiTheme, setUiTheme] = useState<UiTheme>(() => readStoredUiTheme());
   const [nightMode, setNightMode] = useState(false);
   const [showAurora, setShowAurora] = useState(false);
   const [showAltitudeGuide, setShowAltitudeGuide] = useState(true);
@@ -559,6 +573,14 @@ function App() {
   const guestJoinBlocked = guestJoinGate.status === 'pass' || guestJoinGate.status === 'rejected';
 
   const debug = useMemo(() => new URLSearchParams(window.location.search).get('debug') === '1', []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(UI_THEME_STORAGE_KEY, uiTheme);
+    } catch {
+      // The theme still applies for the current page if storage is unavailable.
+    }
+  }, [uiTheme]);
 
   useEffect(() => {
     try {
@@ -1153,13 +1175,14 @@ function App() {
   const selectedStatus = selectedPosition ? getAltitudeStatus(selectedPosition.altitudeDeg) : null;
 
   if (guestJoinGate.status === 'rejected') {
-    return <GuestRejectedScreen nightMode={nightMode} />;
+    return <GuestRejectedScreen nightMode={nightMode} uiTheme={uiTheme} />;
   }
 
   if (guestJoinGate.status === 'pass') {
     return (
       <GuestPassGate
         nightMode={nightMode}
+        uiTheme={uiTheme}
         value={guestPassInput}
         onChange={setGuestPassInput}
         onSubmit={submitGuestPass}
@@ -1168,7 +1191,7 @@ function App() {
   }
 
   return (
-    <main className={`app-shell ${nightMode ? 'night-mode' : ''}`}>
+    <main className={`app-shell ${nightMode ? 'night-mode' : ''}`} data-theme={uiTheme}>
       <section className="top-bar">
         <div>
           <h1>Sky</h1>
@@ -1305,11 +1328,13 @@ function App() {
             )}
             {page === 'settings' && (
               <SettingsPage
+                uiTheme={uiTheme}
                 nightMode={nightMode}
                 showAurora={showAurora}
                 showAltitudeGuide={showAltitudeGuide}
                 sensorProbe={sensorProbe}
                 invertSensorAltitude={invertSensorAltitude}
+                onUiThemeChange={setUiTheme}
                 onNightModeChange={setNightMode}
                 onShowAuroraChange={setShowAurora}
                 onShowAltitudeGuideChange={setShowAltitudeGuide}
@@ -1340,17 +1365,19 @@ function App() {
 
 function GuestPassGate({
   nightMode,
+  uiTheme,
   value,
   onChange,
   onSubmit,
 }: {
   nightMode: boolean;
+  uiTheme: UiTheme;
   value: string;
   onChange: (value: string) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
 }) {
   return (
-    <main className={`app-shell gate-shell ${nightMode ? 'night-mode' : ''}`}>
+    <main className={`app-shell gate-shell ${nightMode ? 'night-mode' : ''}`} data-theme={uiTheme}>
       <section className="guest-gate-card">
         <h1>利用PASS</h1>
         <p>SoravaのPASSを入力してください。</p>
@@ -1370,9 +1397,9 @@ function GuestPassGate({
   );
 }
 
-function GuestRejectedScreen({ nightMode }: { nightMode: boolean }) {
+function GuestRejectedScreen({ nightMode, uiTheme }: { nightMode: boolean; uiTheme: UiTheme }) {
   return (
-    <main className={`app-shell gate-shell ${nightMode ? 'night-mode' : ''}`}>
+    <main className={`app-shell gate-shell ${nightMode ? 'night-mode' : ''}`} data-theme={uiTheme}>
       <section className="guest-gate-card rejected">
         <h1>参加できません</h1>
         <p>PASSが確認できませんでした。</p>
@@ -1853,21 +1880,25 @@ function SessionPage({
 }
 
 function SettingsPage({
+  uiTheme,
   nightMode,
   showAurora,
   showAltitudeGuide,
   sensorProbe,
   invertSensorAltitude,
+  onUiThemeChange,
   onNightModeChange,
   onShowAuroraChange,
   onShowAltitudeGuideChange,
   onInvertSensorAltitudeChange,
 }: {
+  uiTheme: UiTheme;
   nightMode: boolean;
   showAurora: boolean;
   showAltitudeGuide: boolean;
   sensorProbe: SensorProbeState;
   invertSensorAltitude: boolean;
+  onUiThemeChange: (theme: UiTheme) => void;
   onNightModeChange: (enabled: boolean) => void;
   onShowAuroraChange: (enabled: boolean) => void;
   onShowAltitudeGuideChange: (enabled: boolean) => void;
@@ -1901,6 +1932,29 @@ function SettingsPage({
 
   return (
     <section className="page-panel settings-page">
+      <div className="setting-row">
+        <span>
+          <strong>表示テーマ</strong>
+          <small>標準 / 観望会</small>
+        </span>
+        <div className="theme-switch" aria-label="表示テーマ">
+          <button
+            type="button"
+            className={uiTheme === 'classic' ? 'active' : ''}
+            onClick={() => onUiThemeChange('classic')}
+          >
+            標準
+          </button>
+          <button
+            type="button"
+            className={uiTheme === 'field' ? 'active' : ''}
+            onClick={() => onUiThemeChange('field')}
+          >
+            観望会
+          </button>
+        </div>
+      </div>
+
       <label className="toggle-row">
         <span>
           <strong>ナイトモード</strong>

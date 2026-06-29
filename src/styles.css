@@ -78,7 +78,8 @@ input {
 
 .top-bar button,
 .bottom-nav button,
-.toggle-row {
+.toggle-row,
+.setting-row {
   border: 1px solid rgba(244, 241, 223, 0.16);
   border-radius: 8px;
   background: rgba(244, 241, 223, 0.07);
@@ -87,7 +88,8 @@ input {
 .night-mode .top-bar button,
 .night-mode .bottom-nav button,
 .night-mode .target-row,
-.night-mode .toggle-row {
+.night-mode .toggle-row,
+.night-mode .setting-row {
   border-color: rgba(255, 88, 68, 0.22);
   background: rgba(80, 0, 0, 0.22);
 }
@@ -1108,7 +1110,8 @@ input {
   background: rgba(255, 129, 112, 0.1);
 }
 
-.toggle-row {
+.toggle-row,
+.setting-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1116,12 +1119,14 @@ input {
   padding: 12px;
 }
 
-.toggle-row span {
+.toggle-row span,
+.setting-row span {
   display: grid;
   gap: 4px;
 }
 
 .toggle-row small,
+.setting-row small,
 .settings-note {
   color: rgba(244, 241, 223, 0.64);
   font-size: 12px;
@@ -1129,6 +1134,7 @@ input {
 }
 
 .night-mode .toggle-row small,
+.night-mode .setting-row small,
 .night-mode .settings-note {
   color: rgba(255, 123, 107, 0.68);
 }
@@ -1137,6 +1143,45 @@ input {
   width: 22px;
   height: 22px;
   accent-color: #ff4c3b;
+}
+
+.theme-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 132px;
+  padding: 3px;
+  border: 1px solid rgba(244, 241, 223, 0.12);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.theme-switch button {
+  min-height: 30px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(244, 241, 223, 0.68);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.theme-switch button.active {
+  color: #fff0aa;
+  background: rgba(255, 238, 170, 0.14);
+}
+
+.night-mode .theme-switch {
+  border-color: rgba(255, 88, 68, 0.2);
+  background: rgba(10, 0, 0, 0.32);
+}
+
+.night-mode .theme-switch button {
+  color: rgba(255, 123, 107, 0.68);
+}
+
+.night-mode .theme-switch button.active {
+  color: #ff9a8d;
+  background: rgba(128, 0, 0, 0.32);
 }
 
 .sensor-permission-button {
