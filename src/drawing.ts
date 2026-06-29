@@ -209,38 +209,28 @@ export function drawSunObject(
   if (position.altitudeDeg < -6 && !debug) return;
 
   const belowHorizon = position.altitudeDeg < 0;
-  const radius = belowHorizon ? 6 : 9;
+  const radius = belowHorizon ? 6 : 8;
   const alpha = belowHorizon ? 0.32 : 0.86;
 
   context.save();
-  context.globalAlpha = nightMode ? Math.min(alpha, 0.34) : alpha;
-  context.shadowColor = nightMode ? 'rgba(255, 80, 58, 0.18)' : 'rgba(255, 205, 91, 0.36)';
-  context.shadowBlur = belowHorizon ? 8 : 16;
-
-  const gradient = context.createRadialGradient(x - radius * 0.35, y - radius * 0.35, 1, x, y, radius * 1.35);
-  if (nightMode) {
-    gradient.addColorStop(0, 'rgba(255, 124, 92, 0.86)');
-    gradient.addColorStop(1, 'rgba(122, 28, 22, 0.64)');
-  } else {
-    gradient.addColorStop(0, 'rgba(255, 249, 204, 0.98)');
-    gradient.addColorStop(0.55, 'rgba(255, 199, 91, 0.92)');
-    gradient.addColorStop(1, 'rgba(228, 111, 52, 0.72)');
-  }
+  context.globalAlpha = nightMode ? Math.min(alpha, 0.42) : alpha;
+  context.shadowColor = nightMode ? 'rgba(255, 96, 82, 0.2)' : 'rgba(255, 255, 255, 0.28)';
+  context.shadowBlur = belowHorizon ? 4 : 8;
 
   context.beginPath();
   context.arc(x, y, radius, 0, Math.PI * 2);
-  context.fillStyle = gradient;
+  context.fillStyle = nightMode ? 'rgba(255, 126, 110, 0.72)' : 'rgba(255, 255, 255, 0.94)';
   context.fill();
 
   context.shadowBlur = 0;
-  context.strokeStyle = nightMode ? 'rgba(255, 108, 84, 0.46)' : 'rgba(255, 243, 185, 0.6)';
-  context.lineWidth = 1;
+  context.strokeStyle = nightMode ? 'rgba(255, 126, 110, 0.5)' : 'rgba(255, 255, 255, 0.72)';
+  context.lineWidth = 1.2;
   context.beginPath();
-  context.arc(x, y, radius + 3, 0, Math.PI * 2);
+  context.arc(x, y, radius + 2, 0, Math.PI * 2);
   context.stroke();
 
   if (position.altitudeDeg >= -2 || debug) {
-    context.fillStyle = nightMode ? 'rgba(255, 124, 104, 0.72)' : 'rgba(255, 244, 194, 0.82)';
+    context.fillStyle = nightMode ? 'rgba(255, 126, 110, 0.72)' : 'rgba(255, 255, 255, 0.82)';
     context.font = '600 12px system-ui, sans-serif';
     context.textAlign = 'center';
     context.textBaseline = 'middle';

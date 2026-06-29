@@ -116,6 +116,7 @@ This file records implementation work and notable design changes so progress can
 - Adjusted recommended target filtering so faint Messier and double-star objects are suppressed during bright sky conditions.
 - Added a subtle sun-altitude driven Sky canvas background gradient while preserving night mode priority.
 - Added a subtle Sky canvas Sun marker using the existing client-side Sun position, without making the Sun a shared target.
+- Simplified the Sky Sun marker into a white circle-style symbol for clearer field readability.
 
 ## Ongoing Rule
 
