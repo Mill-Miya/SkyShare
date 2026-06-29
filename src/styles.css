@@ -681,6 +681,7 @@ input {
 }
 
 .target-row.clear {
+  place-items: center;
   grid-template-columns: 1fr;
   min-height: 44px;
   margin: 0 0 12px;
@@ -688,20 +689,11 @@ input {
   color: rgba(244, 241, 223, 0.82);
 }
 
-.target-row.clear strong,
-.target-row.clear span {
+.target-row.clear strong {
   grid-column: 1;
   min-width: 0;
-  text-align: left;
-}
-
-.target-row.clear strong {
   font-size: 14px;
-}
-
-.target-row.clear span {
-  color: rgba(244, 241, 223, 0.58);
-  font-size: 11px;
+  text-align: center;
 }
 
 .target-row.below {
@@ -1476,13 +1468,7 @@ input {
     grid-column: 1;
     grid-row: 1;
     font-size: 14px;
-  }
-
-  .target-row.clear span {
-    grid-column: 1;
-    grid-row: 2;
-    font-size: 11px;
-    line-height: 1.3;
+    text-align: center;
   }
 
   .session-choice {

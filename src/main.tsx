@@ -1537,7 +1537,6 @@ function TargetsPage({
       </div>
       <button type="button" className={`target-row clear ${selectedTargetId === null ? 'selected' : ''}`} onClick={onClear}>
         <strong>選択なし</strong>
-        <span>天体を選ばずに空を見る</span>
       </button>
       {visiblePositions.length === 0 && (
         <div className="target-empty">今は表示できるおすすめが少ないです。別のカテゴリを見てください。</div>

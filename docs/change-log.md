@@ -104,6 +104,7 @@ This file records implementation work and notable design changes so progress can
 - Moved the sensor vertical inversion escape hatch into normal Settings as `上下反転`, so field testers can flip altitude direction without opening the admin probe.
 - Adjusted the Targets `選択なし` row so it no longer inherits the normal target row's two-column placement on narrow iPhone screens.
 - Fixed the PASS submit path so the plain GitHub Pages URL unlocks the app even when there is no `/join/{sessionId}` code in the address.
+- Simplified the Targets clear-selection row to a centered `選択なし` label with no secondary description text.
 
 ## Ongoing Rule
 
