@@ -18,6 +18,7 @@ import {
   drawGroundAndMountains,
   drawSkyBrightnessBackground,
   drawStars,
+  drawSunObject,
   drawTargetObject,
   getZoomBounds,
   normalizeAzimuth,
@@ -35,6 +36,7 @@ import type {
   SharedPointer,
   SkyBrightnessState,
   StarPosition,
+  SunPosition,
   TargetId,
   TargetCategory,
   TargetDefinition,
@@ -240,6 +242,7 @@ function SkyCanvas({
   view,
   selectedTargetId,
   nightMode,
+  sunPosition,
   sunAltitudeDeg,
   showAurora,
   showAltitudeGuide,
@@ -255,6 +258,7 @@ function SkyCanvas({
   view: ViewState;
   selectedTargetId: TargetId | null;
   nightMode: boolean;
+  sunPosition: SunPosition | null;
   sunAltitudeDeg: number | null;
   showAurora: boolean;
   showAltitudeGuide: boolean;
@@ -305,6 +309,14 @@ function SkyCanvas({
 
     drawStars(context, width, height, view, pxPerDeg, stars, nightMode);
     drawAurora(context, width, height, horizonY, view, nightMode, showAurora);
+
+    if (sunPosition) {
+      const sunX = centerX + shortestAzimuthDelta(sunPosition.azimuthDeg, view.centerAzimuthDeg) * pxPerDeg;
+      const sunY = centerY - (sunPosition.altitudeDeg - view.centerAltitudeDeg) * pxPerDeg;
+      if (sunX >= -80 && sunX <= width + 80 && sunY >= -80 && sunY <= height + 80) {
+        drawSunObject(context, sunPosition, sunX, sunY, nightMode, debug);
+      }
+    }
 
     if (showAltitudeGuide && debug) {
       const guideColor = nightMode ? 'rgba(255, 92, 74, 0.28)' : 'rgba(190, 223, 242, 0.26)';
@@ -439,7 +451,7 @@ function SkyCanvas({
       context.font = selected ? '700 13px system-ui, sans-serif' : '600 12px system-ui, sans-serif';
       context.fillText(target?.label ?? position.id, x, y - radius - 12);
     });
-  }, [debug, nightMode, onMetricsChange, positions, selectedTargetId, showAltitudeGuide, showAurora, stars, sunAltitudeDeg, view]);
+  }, [debug, nightMode, onMetricsChange, positions, selectedTargetId, showAltitudeGuide, showAurora, stars, sunAltitudeDeg, sunPosition, view]);
 
   function getPointerInfo() {
     const pointers = [...gestureRef.current.pointers.values()];
@@ -1215,6 +1227,7 @@ function App() {
           view={view}
           selectedTargetId={activeTargetId}
           nightMode={nightMode}
+          sunPosition={sunPosition}
           sunAltitudeDeg={sunPosition?.altitudeDeg ?? null}
           showAurora={showAurora}
           showAltitudeGuide={showAltitudeGuide}

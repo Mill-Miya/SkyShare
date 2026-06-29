@@ -1,4 +1,4 @@
-import type { StarPosition, TargetDefinition, TargetPosition, ViewState } from './types';
+import type { StarPosition, SunPosition, TargetDefinition, TargetPosition, ViewState } from './types';
 
 const INITIAL_HORIZONTAL_FOV_DEG = 56;
 const MAX_HORIZONTAL_FOV_DEG = 76;
@@ -193,6 +193,58 @@ export function drawAurora(
     context.closePath();
     context.fillStyle = bandGradient;
     context.fill();
+  }
+
+  context.restore();
+}
+
+export function drawSunObject(
+  context: CanvasRenderingContext2D,
+  position: SunPosition,
+  x: number,
+  y: number,
+  nightMode: boolean,
+  debug: boolean,
+) {
+  if (position.altitudeDeg < -6 && !debug) return;
+
+  const belowHorizon = position.altitudeDeg < 0;
+  const radius = belowHorizon ? 6 : 9;
+  const alpha = belowHorizon ? 0.32 : 0.86;
+
+  context.save();
+  context.globalAlpha = nightMode ? Math.min(alpha, 0.34) : alpha;
+  context.shadowColor = nightMode ? 'rgba(255, 80, 58, 0.18)' : 'rgba(255, 205, 91, 0.36)';
+  context.shadowBlur = belowHorizon ? 8 : 16;
+
+  const gradient = context.createRadialGradient(x - radius * 0.35, y - radius * 0.35, 1, x, y, radius * 1.35);
+  if (nightMode) {
+    gradient.addColorStop(0, 'rgba(255, 124, 92, 0.86)');
+    gradient.addColorStop(1, 'rgba(122, 28, 22, 0.64)');
+  } else {
+    gradient.addColorStop(0, 'rgba(255, 249, 204, 0.98)');
+    gradient.addColorStop(0.55, 'rgba(255, 199, 91, 0.92)');
+    gradient.addColorStop(1, 'rgba(228, 111, 52, 0.72)');
+  }
+
+  context.beginPath();
+  context.arc(x, y, radius, 0, Math.PI * 2);
+  context.fillStyle = gradient;
+  context.fill();
+
+  context.shadowBlur = 0;
+  context.strokeStyle = nightMode ? 'rgba(255, 108, 84, 0.46)' : 'rgba(255, 243, 185, 0.6)';
+  context.lineWidth = 1;
+  context.beginPath();
+  context.arc(x, y, radius + 3, 0, Math.PI * 2);
+  context.stroke();
+
+  if (position.altitudeDeg >= -2 || debug) {
+    context.fillStyle = nightMode ? 'rgba(255, 124, 104, 0.72)' : 'rgba(255, 244, 194, 0.82)';
+    context.font = '600 12px system-ui, sans-serif';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText('太陽', x, y - radius - 13);
   }
 
   context.restore();

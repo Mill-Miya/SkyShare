@@ -115,6 +115,7 @@ This file records implementation work and notable design changes so progress can
 - Added sun-altitude based sky brightness state, showing day/twilight/night guidance in Targets.
 - Adjusted recommended target filtering so faint Messier and double-star objects are suppressed during bright sky conditions.
 - Added a subtle sun-altitude driven Sky canvas background gradient while preserving night mode priority.
+- Added a subtle Sky canvas Sun marker using the existing client-side Sun position, without making the Sun a shared target.
 
 ## Ongoing Rule
 
