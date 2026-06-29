@@ -126,10 +126,21 @@
 }
 
 [data-ui-mode="simple"] .target-category-strip {
+  width: 100%;
+  max-width: 100%;
+  padding-right: 2px;
+  padding-left: 2px;
   min-height: 34px;
   margin-bottom: 8px;
   padding-bottom: 7px;
+  overflow-x: auto;
+  overflow-y: hidden;
   border-bottom-color: rgba(180, 190, 170, 0.14);
+}
+
+[data-ui-mode="simple"] .targets-page {
+  padding-right: 2px;
+  padding-left: 2px;
 }
 
 [data-ui-mode="simple"] .settings-page,
@@ -138,6 +149,8 @@
 }
 
 [data-ui-mode="simple"] .target-category-strip button {
+  flex: 0 0 auto;
+  max-width: calc(100vw - 72px);
   min-height: 28px;
   padding: 4px 8px;
   border-color: rgba(180, 190, 170, 0.12);
@@ -298,6 +311,11 @@
   color: var(--simple-subtle);
 }
 
+[data-ui-mode="simple"] .settings-page .toggle-row small,
+[data-ui-mode="simple"] .settings-page .setting-row small {
+  display: none;
+}
+
 [data-ui-mode="simple"] .toggle-row input {
   accent-color: #9fa398;
 }
@@ -365,8 +383,11 @@
 
 @media (max-width: 430px) {
   [data-ui-mode="simple"] .target-category-strip {
-    padding-right: 2px;
-    padding-left: 2px;
+    width: calc(100% - 4px);
+    margin-right: 2px;
+    margin-left: 2px;
+    padding-right: 0;
+    padding-left: 0;
   }
 
   [data-ui-mode="simple"] .target-row,
