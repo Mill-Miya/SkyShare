@@ -618,6 +618,38 @@ input {
   gap: 6px;
 }
 
+.sky-brightness-note {
+  display: grid;
+  gap: 3px;
+  padding: 6px 4px 8px;
+  border-bottom: 1px solid rgba(244, 241, 223, 0.08);
+  color: rgba(244, 241, 223, 0.72);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.sky-brightness-note strong {
+  color: rgba(244, 241, 223, 0.9);
+  font-size: 13px;
+}
+
+.sky-brightness-note span {
+  color: rgba(244, 241, 223, 0.58);
+}
+
+.night-mode .sky-brightness-note {
+  border-bottom-color: rgba(255, 84, 64, 0.14);
+  color: rgba(255, 126, 108, 0.68);
+}
+
+.night-mode .sky-brightness-note strong {
+  color: rgba(255, 126, 108, 0.86);
+}
+
+.night-mode .sky-brightness-note span {
+  color: rgba(255, 126, 108, 0.56);
+}
+
 .target-category-strip {
   display: flex;
   gap: 7px;

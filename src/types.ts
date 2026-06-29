@@ -21,6 +21,18 @@ export type StarPosition = {
   color: string;
 };
 
+export type SunPosition = {
+  azimuthDeg: number;
+  altitudeDeg: number;
+};
+
+export type SkyBrightnessState =
+  | 'day'
+  | 'civil_twilight'
+  | 'nautical_twilight'
+  | 'astronomical_twilight'
+  | 'night';
+
 export type ObserverLocation = {
   latitude: number;
   longitude: number;

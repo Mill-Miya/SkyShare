@@ -24,6 +24,88 @@ export function getZoomBounds(width: number) {
   };
 }
 
+const SKY_COLOR_STOPS = [
+  { altitudeDeg: 5, top: '#5fa9ff', bottom: '#b9ddff' },
+  { altitudeDeg: 0, top: '#315f9e', bottom: '#f0a66d' },
+  { altitudeDeg: -6, top: '#122b59', bottom: '#55406f' },
+  { altitudeDeg: -12, top: '#071632', bottom: '#111c3a' },
+  { altitudeDeg: -18, top: '#020811', bottom: '#05080b' },
+];
+
+function lerp(a: number, b: number, t: number) {
+  return a + (b - a) * t;
+}
+
+function hexToRgb(hex: string) {
+  const value = hex.replace('#', '');
+  return {
+    r: parseInt(value.slice(0, 2), 16),
+    g: parseInt(value.slice(2, 4), 16),
+    b: parseInt(value.slice(4, 6), 16),
+  };
+}
+
+function lerpHexColor(fromHex: string, toHex: string, t: number) {
+  const from = hexToRgb(fromHex);
+  const to = hexToRgb(toHex);
+  const r = Math.round(lerp(from.r, to.r, t));
+  const g = Math.round(lerp(from.g, to.g, t));
+  const b = Math.round(lerp(from.b, to.b, t));
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+function getSkyGradientColors(sunAltitudeDeg: number | null, nightMode: boolean) {
+  if (nightMode) {
+    const daylightHint = sunAltitudeDeg === null ? 0 : clamp((sunAltitudeDeg + 18) / 24, 0, 1);
+    return {
+      top: lerpHexColor('#070000', '#170403', daylightHint * 0.45),
+      bottom: lerpHexColor('#030000', '#0a0101', daylightHint * 0.35),
+    };
+  }
+
+  if (sunAltitudeDeg === null || !Number.isFinite(sunAltitudeDeg)) {
+    return { top: '#051425', bottom: '#10110e' };
+  }
+
+  if (sunAltitudeDeg >= SKY_COLOR_STOPS[0].altitudeDeg) {
+    return { top: SKY_COLOR_STOPS[0].top, bottom: SKY_COLOR_STOPS[0].bottom };
+  }
+
+  const lastStop = SKY_COLOR_STOPS[SKY_COLOR_STOPS.length - 1];
+  if (sunAltitudeDeg <= lastStop.altitudeDeg) {
+    return { top: lastStop.top, bottom: lastStop.bottom };
+  }
+
+  for (let index = 0; index < SKY_COLOR_STOPS.length - 1; index += 1) {
+    const upper = SKY_COLOR_STOPS[index];
+    const lower = SKY_COLOR_STOPS[index + 1];
+    if (sunAltitudeDeg <= upper.altitudeDeg && sunAltitudeDeg >= lower.altitudeDeg) {
+      const t = (upper.altitudeDeg - sunAltitudeDeg) / (upper.altitudeDeg - lower.altitudeDeg);
+      return {
+        top: lerpHexColor(upper.top, lower.top, t),
+        bottom: lerpHexColor(upper.bottom, lower.bottom, t),
+      };
+    }
+  }
+
+  return { top: '#051425', bottom: '#10110e' };
+}
+
+export function drawSkyBrightnessBackground(
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  sunAltitudeDeg: number | null,
+  nightMode: boolean,
+) {
+  const colors = getSkyGradientColors(sunAltitudeDeg, nightMode);
+  const skyGradient = context.createLinearGradient(0, 0, 0, height);
+  skyGradient.addColorStop(0, colors.top);
+  skyGradient.addColorStop(1, colors.bottom);
+  context.fillStyle = skyGradient;
+  context.fillRect(0, 0, width, height);
+}
+
 export function drawStars(
   context: CanvasRenderingContext2D,
   width: number,

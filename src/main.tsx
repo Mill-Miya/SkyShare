@@ -3,8 +3,12 @@ import { createRoot } from 'react-dom/client';
 import QRCode from 'qrcode';
 import {
   TARGET_CATEGORIES,
+  calculateSunPosition,
   calculateStars,
   calculateTargets,
+  getSkyBrightnessLabel,
+  getSkyBrightnessNote,
+  getSkyBrightnessState,
   getKindLabel,
   getTargetDefinition,
 } from './astronomy';
@@ -12,6 +16,7 @@ import {
   clamp,
   drawAurora,
   drawGroundAndMountains,
+  drawSkyBrightnessBackground,
   drawStars,
   drawTargetObject,
   getZoomBounds,
@@ -28,9 +33,11 @@ import type {
   SessionRole,
   ShareMode,
   SharedPointer,
+  SkyBrightnessState,
   StarPosition,
   TargetId,
   TargetCategory,
+  TargetDefinition,
   TargetPosition,
   ViewMetrics,
   ViewState,
@@ -233,6 +240,7 @@ function SkyCanvas({
   view,
   selectedTargetId,
   nightMode,
+  sunAltitudeDeg,
   showAurora,
   showAltitudeGuide,
   sensorModeEnabled,
@@ -247,6 +255,7 @@ function SkyCanvas({
   view: ViewState;
   selectedTargetId: TargetId | null;
   nightMode: boolean;
+  sunAltitudeDeg: number | null;
   showAurora: boolean;
   showAltitudeGuide: boolean;
   sensorModeEnabled: boolean;
@@ -290,18 +299,7 @@ function SkyCanvas({
 
     context.clearRect(0, 0, width, height);
 
-    const skyGradient = context.createLinearGradient(0, 0, 0, height);
-    if (nightMode) {
-      skyGradient.addColorStop(0, '#070000');
-      skyGradient.addColorStop(0.55, '#090202');
-      skyGradient.addColorStop(1, '#030000');
-    } else {
-      skyGradient.addColorStop(0, '#051425');
-      skyGradient.addColorStop(0.55, '#071a22');
-      skyGradient.addColorStop(1, '#10110e');
-    }
-    context.fillStyle = skyGradient;
-    context.fillRect(0, 0, width, height);
+    drawSkyBrightnessBackground(context, width, height, sunAltitudeDeg, nightMode);
 
     const horizonY = centerY + view.centerAltitudeDeg * pxPerDeg;
 
@@ -441,7 +439,7 @@ function SkyCanvas({
       context.font = selected ? '700 13px system-ui, sans-serif' : '600 12px system-ui, sans-serif';
       context.fillText(target?.label ?? position.id, x, y - radius - 12);
     });
-  }, [debug, nightMode, onMetricsChange, positions, selectedTargetId, showAltitudeGuide, showAurora, stars, view]);
+  }, [debug, nightMode, onMetricsChange, positions, selectedTargetId, showAltitudeGuide, showAurora, stars, sunAltitudeDeg, view]);
 
   function getPointerInfo() {
     const pointers = [...gestureRef.current.pointers.values()];
@@ -1171,6 +1169,12 @@ function App() {
     return calculateStars(location, time);
   }, [location, time]);
 
+  const sunPosition = useMemo(() => {
+    if (!location) return null;
+    return calculateSunPosition(location, time);
+  }, [location, time]);
+  const skyBrightnessState = sunPosition ? getSkyBrightnessState(sunPosition.altitudeDeg) : null;
+
   const activeTargetId = sessionRole === 'guest' ? (shareMode === 'target' ? sharedTargetId : null) : selectedTargetId;
   const selectedPosition = positions.find((position) => position.id === activeTargetId) ?? null;
   const guidance: GuidanceState | null = selectedPosition ? calculateGuidance(selectedPosition, view) : null;
@@ -1211,6 +1215,7 @@ function App() {
           view={view}
           selectedTargetId={activeTargetId}
           nightMode={nightMode}
+          sunAltitudeDeg={sunPosition?.altitudeDeg ?? null}
           showAurora={showAurora}
           showAltitudeGuide={showAltitudeGuide}
           sensorModeEnabled={sensorModeEnabled}
@@ -1284,6 +1289,8 @@ function App() {
             {page === 'targets' && (
               <TargetsPage
                 positions={positions}
+                skyBrightnessState={skyBrightnessState}
+                sunAltitudeDeg={sunPosition?.altitudeDeg ?? null}
                 selectedTargetId={sessionRole === 'guest' ? activeTargetId : selectedTargetId}
                 onClear={() => {
                   setSelectedTargetId(null);
@@ -1518,11 +1525,15 @@ function PointerOverlay({
 
 function TargetsPage({
   positions,
+  skyBrightnessState,
+  sunAltitudeDeg,
   selectedTargetId,
   onClear,
   onSelect,
 }: {
   positions: TargetPosition[];
+  skyBrightnessState: SkyBrightnessState | null;
+  sunAltitudeDeg: number | null;
   selectedTargetId: TargetId | null;
   onClear: () => void;
   onSelect: (targetId: TargetId, position: TargetPosition) => void;
@@ -1536,7 +1547,7 @@ function TargetsPage({
       if (!target) return false;
       if (target.kind === 'landmark' && target.id !== 'landmark_polaris') return false;
       if (category === 'recommended') {
-        return Boolean(target.recommended) && position.altitudeDeg >= 5;
+        return isRecommendedForSkyBrightness(target, position, skyBrightnessState);
       }
       if (category === 'seasonal') {
         return Boolean(target.seasonalTags?.includes(season));
@@ -1552,6 +1563,14 @@ function TargetsPage({
 
   return (
     <section className="page-panel targets-page">
+      {skyBrightnessState && sunAltitudeDeg !== null && (
+        <div className="sky-brightness-note">
+          <strong>
+            {getSkyBrightnessLabel(skyBrightnessState)} / 太陽 {Math.round(sunAltitudeDeg)}°
+          </strong>
+          <span>{getSkyBrightnessNote(skyBrightnessState)}</span>
+        </div>
+      )}
       <div className="target-category-strip" aria-label="対象カテゴリ">
         {TARGET_CATEGORIES.map((item) => (
           <button
@@ -1593,6 +1612,28 @@ function TargetsPage({
       })}
     </section>
   );
+}
+
+function isRecommendedForSkyBrightness(
+  target: TargetDefinition,
+  position: TargetPosition,
+  skyBrightnessState: SkyBrightnessState | null,
+) {
+  if (!target.recommended || position.altitudeDeg < 5) return false;
+  if (!skyBrightnessState) return true;
+
+  if (skyBrightnessState === 'day') {
+    return target.kind === 'moon' || target.kind === 'planet';
+  }
+
+  if (
+    skyBrightnessState === 'civil_twilight' ||
+    skyBrightnessState === 'nautical_twilight'
+  ) {
+    return target.kind !== 'messier' && target.kind !== 'double_star';
+  }
+
+  return true;
 }
 
 function getCompactAltitudeStatusLabel(status: ReturnType<typeof getAltitudeStatus>) {

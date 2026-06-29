@@ -1,5 +1,13 @@
 import * as Astronomy from 'astronomy-engine';
-import type { ObserverLocation, StarPosition, TargetCategory, TargetDefinition, TargetPosition } from './types';
+import type {
+  ObserverLocation,
+  SkyBrightnessState,
+  StarPosition,
+  SunPosition,
+  TargetCategory,
+  TargetDefinition,
+  TargetPosition,
+} from './types';
 import { normalizeAzimuth } from './drawing';
 
 export const TARGETS: TargetDefinition[] = [
@@ -144,6 +152,41 @@ export function calculateTargets(location: ObserverLocation, date: Date): Target
   });
 
   return [...solarSystemTargets, ...calculateCatalogTargets(location, date)];
+}
+
+export function calculateSunPosition(location: ObserverLocation, date: Date): SunPosition {
+  const observer = new Astronomy.Observer(location.latitude, location.longitude, 0);
+  const equator = Astronomy.Equator(Astronomy.Body.Sun, date, observer, true, true);
+  const horizon = Astronomy.Horizon(date, observer, equator.ra, equator.dec, 'normal');
+
+  return {
+    azimuthDeg: normalizeAzimuth(horizon.azimuth),
+    altitudeDeg: horizon.altitude,
+  };
+}
+
+export function getSkyBrightnessState(sunAltitudeDeg: number): SkyBrightnessState {
+  if (sunAltitudeDeg >= 0) return 'day';
+  if (sunAltitudeDeg >= -6) return 'civil_twilight';
+  if (sunAltitudeDeg >= -12) return 'nautical_twilight';
+  if (sunAltitudeDeg >= -18) return 'astronomical_twilight';
+  return 'night';
+}
+
+export function getSkyBrightnessLabel(state: SkyBrightnessState): string {
+  if (state === 'day') return '昼';
+  if (state === 'civil_twilight') return '市民薄明';
+  if (state === 'nautical_twilight') return '航海薄明';
+  if (state === 'astronomical_twilight') return '天文薄明';
+  return '夜';
+}
+
+export function getSkyBrightnessNote(state: SkyBrightnessState): string {
+  if (state === 'day') return '月や一部の惑星以外は見えにくい時間帯です。';
+  if (state === 'civil_twilight') return '暗い天体はまだ見えにくい時間帯です。';
+  if (state === 'nautical_twilight') return '明るい星や惑星が見え始める時間帯です。';
+  if (state === 'astronomical_twilight') return '暗い天体も見え始めますが、条件は少し落ちます。';
+  return '暗い天体も観望しやすい時間帯です。';
 }
 
 export function calculateCatalogTargets(location: ObserverLocation, date: Date): TargetPosition[] {

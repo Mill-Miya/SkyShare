@@ -147,6 +147,26 @@
   padding-left: 0;
 }
 
+[data-ui-mode="simple"] .sky-brightness-note {
+  width: calc(100% - 8px);
+  max-width: calc(100% - 8px);
+  margin-right: 4px;
+  margin-left: 4px;
+  padding: 4px 0 7px;
+  border-bottom-color: rgba(180, 190, 170, 0.1);
+  color: var(--simple-muted);
+}
+
+[data-ui-mode="simple"] .sky-brightness-note strong {
+  color: var(--simple-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+[data-ui-mode="simple"] .sky-brightness-note span {
+  display: none;
+}
+
 [data-ui-mode="simple"] .settings-page,
 [data-ui-mode="simple"] .session-page {
   gap: 4px;
