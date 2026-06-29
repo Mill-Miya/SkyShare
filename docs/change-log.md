@@ -110,6 +110,7 @@ This file records implementation work and notable design changes so progress can
 - Muted checkbox accent colors in both standard and simple display modes so Settings toggles no longer use a strong red highlight.
 - Changed the display mode labels to `A / B` with the existing simple mode as A, tightened A-mode Targets rows to stay inside the sheet, and made A-mode hairlines slightly stronger.
 - Further constrained A-mode Targets category chips within the sheet and hid Settings description text in A mode for a cleaner list-style settings view.
+- Reworked A-mode Targets width handling with inner clipped rows/category strips and softened the A-mode hairline opacity.
 
 ## Ongoing Rule
 
