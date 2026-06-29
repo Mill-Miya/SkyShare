@@ -859,7 +859,6 @@ function App() {
   function submitGuestPass(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const sessionId = guestJoinGate.sessionId;
-    if (!sessionId) return;
 
     if (guestPassInput.trim() === GUEST_ACCESS_CODE) {
       writeSessionFlag(GUEST_UNLOCKED_KEY, true);
