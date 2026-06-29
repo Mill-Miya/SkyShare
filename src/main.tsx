@@ -1937,22 +1937,22 @@ function SettingsPage({
       <div className="setting-row">
         <span>
           <strong>表示モード</strong>
-          <small>標準 / 簡易</small>
+          <small>A / B</small>
         </span>
         <div className="theme-switch" aria-label="表示モード">
-          <button
-            type="button"
-            className={uiMode === 'standard' ? 'active' : ''}
-            onClick={() => onUiModeChange('standard')}
-          >
-            標準
-          </button>
           <button
             type="button"
             className={uiMode === 'simple' ? 'active' : ''}
             onClick={() => onUiModeChange('simple')}
           >
-            簡易
+            A
+          </button>
+          <button
+            type="button"
+            className={uiMode === 'standard' ? 'active' : ''}
+            onClick={() => onUiModeChange('standard')}
+          >
+            B
           </button>
         </div>
       </div>

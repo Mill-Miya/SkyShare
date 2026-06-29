@@ -108,6 +108,7 @@ This file records implementation work and notable design changes so progress can
 - Added a switchable `field` UI theme for low-light observing use, with Settings theme selection, localStorage persistence, and isolated CSS overrides while keeping `classic` as the default.
 - Renamed the UI switch to `表示モード` with `標準 / 簡易`, mapped old `classic/field` stored values for compatibility, and made simple mode visually distinct with lighter bottom navigation, list-like Settings, and reduced Session CTA styling.
 - Muted checkbox accent colors in both standard and simple display modes so Settings toggles no longer use a strong red highlight.
+- Changed the display mode labels to `A / B` with the existing simple mode as A, tightened A-mode Targets rows to stay inside the sheet, and made A-mode hairlines slightly stronger.
 
 ## Ongoing Rule
 
