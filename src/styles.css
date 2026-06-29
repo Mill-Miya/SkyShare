@@ -1142,7 +1142,11 @@ input {
 .toggle-row input {
   width: 22px;
   height: 22px;
-  accent-color: #ff4c3b;
+  accent-color: #c8c58a;
+}
+
+.night-mode .toggle-row input {
+  accent-color: #b48a7e;
 }
 
 .theme-switch {

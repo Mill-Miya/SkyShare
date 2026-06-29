@@ -292,6 +292,14 @@
   color: var(--simple-subtle);
 }
 
+[data-ui-mode="simple"] .toggle-row input {
+  accent-color: #9fa398;
+}
+
+[data-ui-mode="simple"].night-mode .toggle-row input {
+  accent-color: #9b6f66;
+}
+
 [data-ui-mode="simple"] .theme-switch {
   min-width: 118px;
   border-color: rgba(180, 190, 170, 0.1);
