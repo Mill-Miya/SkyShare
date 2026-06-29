@@ -1,0 +1,362 @@
+[data-ui-mode="simple"] {
+  --simple-bg: #05080b;
+  --simple-bg-2: #071018;
+  --simple-surface: rgba(12, 18, 22, 0.86);
+  --simple-surface-2: rgba(18, 24, 26, 0.78);
+  --simple-border: rgba(180, 190, 170, 0.16);
+  --simple-border-strong: rgba(210, 214, 170, 0.34);
+  --simple-text: #e7e8dc;
+  --simple-muted: #9fa398;
+  --simple-subtle: #6f766f;
+  --simple-accent: #c8c58a;
+  --simple-danger: #c07b6a;
+  color: var(--simple-text);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(28, 54, 64, 0.18), transparent 38%),
+    linear-gradient(180deg, #071018 0%, var(--simple-bg) 48%, #030506 100%);
+}
+
+[data-ui-mode="simple"].night-mode {
+  --simple-bg: #050202;
+  --simple-bg-2: #0d0504;
+  --simple-surface: rgba(16, 9, 8, 0.9);
+  --simple-surface-2: rgba(24, 10, 8, 0.78);
+  --simple-border: rgba(180, 90, 74, 0.18);
+  --simple-border-strong: rgba(218, 112, 92, 0.36);
+  --simple-text: #ff9a8d;
+  --simple-muted: rgba(255, 145, 128, 0.7);
+  --simple-subtle: rgba(255, 120, 102, 0.48);
+  --simple-accent: #d77868;
+  --simple-danger: #ff8170;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(92, 12, 8, 0.14), transparent 38%),
+    #030000;
+}
+
+[data-ui-mode="simple"] :where(button, input) {
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 120ms ease;
+}
+
+[data-ui-mode="simple"] :where(button):active {
+  transform: translateY(1px);
+}
+
+[data-ui-mode="simple"] :where(button, input):focus-visible {
+  outline: 2px solid rgba(200, 197, 138, 0.72);
+  outline-offset: 2px;
+}
+
+[data-ui-mode="simple"].night-mode :where(button, input):focus-visible {
+  outline-color: rgba(255, 123, 107, 0.78);
+}
+
+[data-ui-mode="simple"] .top-bar h1 {
+  color: var(--simple-text);
+  font-size: 21px;
+  font-weight: 780;
+}
+
+[data-ui-mode="simple"] .top-bar p {
+  color: var(--simple-muted);
+}
+
+[data-ui-mode="simple"] .top-bar button,
+[data-ui-mode="simple"] .sensor-follow-button,
+[data-ui-mode="simple"] .sheet-close,
+[data-ui-mode="simple"] .secondary-action,
+[data-ui-mode="simple"] .primary-action,
+[data-ui-mode="simple"] .session-card button {
+  border-color: var(--simple-border);
+  border-radius: 6px;
+  color: var(--simple-text);
+  background: rgba(231, 232, 220, 0.032);
+  font-weight: 760;
+}
+
+[data-ui-mode="simple"] .top-bar button:hover,
+[data-ui-mode="simple"] .sensor-follow-button:hover,
+[data-ui-mode="simple"] .sheet-close:hover,
+[data-ui-mode="simple"] .bottom-nav button:hover,
+[data-ui-mode="simple"] .session-choice-button:hover,
+[data-ui-mode="simple"] .theme-switch button:hover {
+  border-color: rgba(210, 214, 170, 0.26);
+  background: rgba(200, 197, 138, 0.08);
+}
+
+[data-ui-mode="simple"] .sky-panel {
+  border-color: rgba(180, 190, 170, 0.12);
+  border-radius: 6px;
+  background: #061017;
+}
+
+[data-ui-mode="simple"] .sensor-follow-button.active {
+  border-color: rgba(200, 197, 138, 0.36);
+  color: var(--simple-accent);
+  background: rgba(96, 102, 71, 0.22);
+}
+
+[data-ui-mode="simple"] .sensor-notice,
+[data-ui-mode="simple"] .shared-empty-note,
+[data-ui-mode="simple"] .view-readout span {
+  border-color: var(--simple-border);
+  border-radius: 6px;
+  color: var(--simple-accent);
+  background: rgba(2, 5, 6, 0.58);
+}
+
+[data-ui-mode="simple"] .sheet-layer {
+  background: rgba(2, 5, 6, 0.42);
+}
+
+[data-ui-mode="simple"] .bottom-sheet,
+[data-ui-mode="simple"] .guest-gate-card {
+  border-color: var(--simple-border);
+  border-radius: 6px 6px 0 0;
+  background: var(--simple-bg-2);
+  box-shadow: none;
+}
+
+[data-ui-mode="simple"] .guest-gate-card {
+  border-radius: 6px;
+  background: var(--simple-surface);
+}
+
+[data-ui-mode="simple"] .target-category-strip {
+  min-height: 34px;
+  margin-bottom: 8px;
+  padding-bottom: 7px;
+  border-bottom-color: rgba(180, 190, 170, 0.09);
+}
+
+[data-ui-mode="simple"] .settings-page,
+[data-ui-mode="simple"] .session-page {
+  gap: 4px;
+}
+
+[data-ui-mode="simple"] .target-category-strip button {
+  min-height: 28px;
+  padding: 4px 8px;
+  border-color: rgba(180, 190, 170, 0.08);
+  border-radius: 5px;
+  color: var(--simple-muted);
+  background: transparent;
+  font-size: 11px;
+}
+
+[data-ui-mode="simple"] .target-category-strip button.active {
+  border-color: rgba(200, 197, 138, 0.28);
+  color: var(--simple-accent);
+  background: rgba(200, 197, 138, 0.08);
+}
+
+[data-ui-mode="simple"] .target-row {
+  min-height: 50px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  border-bottom-color: rgba(180, 190, 170, 0.07);
+  color: var(--simple-text);
+}
+
+[data-ui-mode="simple"] .target-row.selected {
+  border-bottom-color: rgba(200, 197, 138, 0.32);
+  background: rgba(200, 197, 138, 0.065);
+}
+
+[data-ui-mode="simple"] .target-row.clear {
+  min-height: 34px;
+  margin-bottom: 8px;
+  border-top: 1px solid rgba(180, 190, 170, 0.05);
+  border-bottom-color: rgba(180, 190, 170, 0.08);
+  color: var(--simple-muted);
+  background: transparent;
+}
+
+[data-ui-mode="simple"] .target-color {
+  opacity: 0.84;
+}
+
+[data-ui-mode="simple"] .target-row span:not(.target-color):not(.target-status),
+[data-ui-mode="simple"] .target-row .target-meta {
+  color: var(--simple-muted);
+}
+
+[data-ui-mode="simple"] .target-status {
+  color: var(--simple-muted);
+  font-size: 11px;
+}
+
+[data-ui-mode="simple"] .target-row.difficult .target-status {
+  color: var(--simple-accent);
+}
+
+[data-ui-mode="simple"] .target-row.below .target-status,
+[data-ui-mode="simple"] .session-error {
+  color: var(--simple-danger);
+}
+
+[data-ui-mode="simple"] .session-choice {
+  align-content: start;
+  gap: 8px;
+  min-height: auto;
+  padding: 4px 0 10px;
+}
+
+[data-ui-mode="simple"] .session-choice h2 {
+  color: var(--simple-text);
+  font-size: 17px;
+  font-weight: 720;
+  text-align: left;
+}
+
+[data-ui-mode="simple"] .session-choice p {
+  text-align: left;
+}
+
+[data-ui-mode="simple"] .session-choice p,
+[data-ui-mode="simple"] .session-card p,
+[data-ui-mode="simple"] .session-note,
+[data-ui-mode="simple"] .session-list,
+[data-ui-mode="simple"] .session-input-row span,
+[data-ui-mode="simple"] .qr-label {
+  color: var(--simple-muted);
+}
+
+[data-ui-mode="simple"] .session-choice-button {
+  justify-content: start;
+  min-height: 48px;
+  padding: 9px 11px;
+  border-color: transparent;
+  border-radius: 4px;
+  border-bottom: 1px solid rgba(180, 190, 170, 0.12);
+  color: var(--simple-text);
+  background: transparent;
+  font-size: 16px;
+  font-weight: 720;
+  text-align: left;
+}
+
+[data-ui-mode="simple"] .session-choice-button.primary-choice,
+[data-ui-mode="simple"] .session-methods button.active,
+[data-ui-mode="simple"] .share-mode-buttons button.active,
+[data-ui-mode="simple"] .theme-switch button.active {
+  border-color: rgba(200, 197, 138, 0.28);
+  color: var(--simple-accent);
+  background: rgba(200, 197, 138, 0.075);
+}
+
+[data-ui-mode="simple"] .session-card,
+[data-ui-mode="simple"] .admin-panel,
+[data-ui-mode="simple"] .settings-note {
+  border-color: var(--simple-border);
+  border-radius: 6px;
+  background: rgba(231, 232, 220, 0.035);
+}
+
+[data-ui-mode="simple"] .session-card {
+  border-top: 1px solid rgba(180, 190, 170, 0.12);
+  border-bottom: 1px solid rgba(180, 190, 170, 0.08);
+  border-right: 0;
+  border-left: 0;
+  border-radius: 0;
+  padding: 11px;
+  background: transparent;
+}
+
+[data-ui-mode="simple"] .toggle-row,
+[data-ui-mode="simple"] .setting-row {
+  padding: 9px 2px;
+  border: 0;
+  border-bottom: 1px solid rgba(180, 190, 170, 0.09);
+  border-radius: 0;
+  background: transparent;
+}
+
+[data-ui-mode="simple"] .settings-page .toggle-row:first-child,
+[data-ui-mode="simple"] .settings-page .setting-row:first-child {
+  border-top: 1px solid rgba(180, 190, 170, 0.09);
+}
+
+[data-ui-mode="simple"] .toggle-row strong,
+[data-ui-mode="simple"] .setting-row strong {
+  font-size: 13px;
+  font-weight: 720;
+}
+
+[data-ui-mode="simple"] .toggle-row small,
+[data-ui-mode="simple"] .setting-row small,
+[data-ui-mode="simple"] .settings-note {
+  color: var(--simple-subtle);
+}
+
+[data-ui-mode="simple"] .theme-switch {
+  min-width: 118px;
+  border-color: rgba(180, 190, 170, 0.1);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+[data-ui-mode="simple"] .theme-switch button {
+  min-height: 28px;
+  border-radius: 3px;
+  color: var(--simple-muted);
+  font-size: 11px;
+}
+
+[data-ui-mode="simple"] .session-input-row input,
+[data-ui-mode="simple"] .guest-pass-form input {
+  border-color: var(--simple-border);
+  color: var(--simple-text);
+  background: rgba(2, 5, 6, 0.42);
+}
+
+[data-ui-mode="simple"] .session-warning {
+  color: var(--simple-accent);
+  background: rgba(200, 197, 138, 0.08);
+}
+
+[data-ui-mode="simple"] .bottom-nav {
+  gap: 0;
+  padding-top: 4px;
+  border-top: 1px solid rgba(180, 190, 170, 0.12);
+  background: var(--simple-bg);
+}
+
+[data-ui-mode="simple"] .bottom-nav button {
+  min-height: 34px;
+  border: 0;
+  border-top: 2px solid transparent;
+  border-radius: 0;
+  color: var(--simple-muted);
+  background: transparent;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+[data-ui-mode="simple"] .bottom-nav button.active {
+  border-top-color: rgba(200, 197, 138, 0.72);
+  color: var(--simple-accent);
+  background: linear-gradient(180deg, rgba(200, 197, 138, 0.09), transparent 70%);
+  font-weight: 760;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-ui-mode="simple"] :where(button, input) {
+    transition: none;
+  }
+}
+
+@media (max-width: 430px) {
+  [data-ui-mode="simple"] .session-choice-button {
+    min-height: 46px;
+    font-size: 15px;
+  }
+
+  [data-ui-mode="simple"] .bottom-nav button {
+    min-height: 34px;
+    font-size: 11px;
+  }
+}

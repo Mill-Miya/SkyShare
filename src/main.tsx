@@ -36,7 +36,7 @@ import type {
   ViewState,
 } from './types';
 import './styles.css';
-import './styles/theme-field.css';
+import './styles/theme-simple.css';
 
 const FALLBACK_LOCATION: ObserverLocation = {
   latitude: 35.6812,
@@ -65,7 +65,7 @@ type GuestJoinGateState = {
   sessionId: string | null;
 };
 
-type UiTheme = 'classic' | 'field';
+type UiMode = 'standard' | 'simple';
 
 function isGitHubPagesHost() {
   return window.location.hostname === 'mill-miya.github.io';
@@ -124,12 +124,14 @@ function readStoredBoolean(key: string, fallback: boolean) {
   }
 }
 
-function readStoredUiTheme(): UiTheme {
+function readStoredUiMode(): UiMode {
   try {
     const storedValue = window.localStorage.getItem(UI_THEME_STORAGE_KEY);
-    return storedValue === 'field' || storedValue === 'classic' ? storedValue : 'classic';
+    if (storedValue === 'simple' || storedValue === 'field') return 'simple';
+    if (storedValue === 'standard' || storedValue === 'classic') return 'standard';
+    return 'standard';
   } catch {
-    return 'classic';
+    return 'standard';
   }
 }
 
@@ -541,7 +543,7 @@ function App() {
   const [tabResetTick, setTabResetTick] = useState(0);
   const [sheetClosing, setSheetClosing] = useState(false);
   const [guidanceSuppressed, setGuidanceSuppressed] = useState(false);
-  const [uiTheme, setUiTheme] = useState<UiTheme>(() => readStoredUiTheme());
+  const [uiMode, setUiMode] = useState<UiMode>(() => readStoredUiMode());
   const [nightMode, setNightMode] = useState(false);
   const [showAurora, setShowAurora] = useState(false);
   const [showAltitudeGuide, setShowAltitudeGuide] = useState(true);
@@ -576,11 +578,11 @@ function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(UI_THEME_STORAGE_KEY, uiTheme);
+      window.localStorage.setItem(UI_THEME_STORAGE_KEY, uiMode);
     } catch {
-      // The theme still applies for the current page if storage is unavailable.
+      // The mode still applies for the current page if storage is unavailable.
     }
-  }, [uiTheme]);
+  }, [uiMode]);
 
   useEffect(() => {
     try {
@@ -1175,14 +1177,14 @@ function App() {
   const selectedStatus = selectedPosition ? getAltitudeStatus(selectedPosition.altitudeDeg) : null;
 
   if (guestJoinGate.status === 'rejected') {
-    return <GuestRejectedScreen nightMode={nightMode} uiTheme={uiTheme} />;
+    return <GuestRejectedScreen nightMode={nightMode} uiMode={uiMode} />;
   }
 
   if (guestJoinGate.status === 'pass') {
     return (
       <GuestPassGate
         nightMode={nightMode}
-        uiTheme={uiTheme}
+        uiMode={uiMode}
         value={guestPassInput}
         onChange={setGuestPassInput}
         onSubmit={submitGuestPass}
@@ -1191,7 +1193,7 @@ function App() {
   }
 
   return (
-    <main className={`app-shell ${nightMode ? 'night-mode' : ''}`} data-theme={uiTheme}>
+    <main className={`app-shell ${nightMode ? 'night-mode' : ''}`} data-ui-mode={uiMode}>
       <section className="top-bar">
         <div>
           <h1>Sky</h1>
@@ -1328,13 +1330,13 @@ function App() {
             )}
             {page === 'settings' && (
               <SettingsPage
-                uiTheme={uiTheme}
+                uiMode={uiMode}
                 nightMode={nightMode}
                 showAurora={showAurora}
                 showAltitudeGuide={showAltitudeGuide}
                 sensorProbe={sensorProbe}
                 invertSensorAltitude={invertSensorAltitude}
-                onUiThemeChange={setUiTheme}
+                onUiModeChange={setUiMode}
                 onNightModeChange={setNightMode}
                 onShowAuroraChange={setShowAurora}
                 onShowAltitudeGuideChange={setShowAltitudeGuide}
@@ -1365,19 +1367,19 @@ function App() {
 
 function GuestPassGate({
   nightMode,
-  uiTheme,
+  uiMode,
   value,
   onChange,
   onSubmit,
 }: {
   nightMode: boolean;
-  uiTheme: UiTheme;
+  uiMode: UiMode;
   value: string;
   onChange: (value: string) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
 }) {
   return (
-    <main className={`app-shell gate-shell ${nightMode ? 'night-mode' : ''}`} data-theme={uiTheme}>
+    <main className={`app-shell gate-shell ${nightMode ? 'night-mode' : ''}`} data-ui-mode={uiMode}>
       <section className="guest-gate-card">
         <h1>利用PASS</h1>
         <p>SoravaのPASSを入力してください。</p>
@@ -1397,9 +1399,9 @@ function GuestPassGate({
   );
 }
 
-function GuestRejectedScreen({ nightMode, uiTheme }: { nightMode: boolean; uiTheme: UiTheme }) {
+function GuestRejectedScreen({ nightMode, uiMode }: { nightMode: boolean; uiMode: UiMode }) {
   return (
-    <main className={`app-shell gate-shell ${nightMode ? 'night-mode' : ''}`} data-theme={uiTheme}>
+    <main className={`app-shell gate-shell ${nightMode ? 'night-mode' : ''}`} data-ui-mode={uiMode}>
       <section className="guest-gate-card rejected">
         <h1>参加できません</h1>
         <p>PASSが確認できませんでした。</p>
@@ -1747,7 +1749,7 @@ function SessionPage({
             ← 戻る
           </button>
           <div className="session-card">
-            <h2>観望会を始める</h2>
+            <h2>案内を始める</h2>
             <p>参加者には選択した天体だけが共有されます。</p>
             <ul className="session-list">
               <li>向きは共有されません</li>
@@ -1768,7 +1770,7 @@ function SessionPage({
         {sessionNotice && <div className="session-warning">{sessionNotice}</div>}
         <div className="session-choice">
           <h2>Session</h2>
-          <p>観望会に参加しますか？</p>
+          <p>セッションに参加しますか？</p>
           <button type="button" className="session-choice-button primary-choice" onClick={() => setEntryMode('join')}>
             参加する
           </button>
@@ -1785,7 +1787,7 @@ function SessionPage({
     return (
       <section className="page-panel session-page">
         <div className="session-card">
-          <h2>観望会</h2>
+          <h2>セッション</h2>
           <dl className="session-facts">
             <div>
               <dt>コード</dt>
@@ -1880,25 +1882,25 @@ function SessionPage({
 }
 
 function SettingsPage({
-  uiTheme,
+  uiMode,
   nightMode,
   showAurora,
   showAltitudeGuide,
   sensorProbe,
   invertSensorAltitude,
-  onUiThemeChange,
+  onUiModeChange,
   onNightModeChange,
   onShowAuroraChange,
   onShowAltitudeGuideChange,
   onInvertSensorAltitudeChange,
 }: {
-  uiTheme: UiTheme;
+  uiMode: UiMode;
   nightMode: boolean;
   showAurora: boolean;
   showAltitudeGuide: boolean;
   sensorProbe: SensorProbeState;
   invertSensorAltitude: boolean;
-  onUiThemeChange: (theme: UiTheme) => void;
+  onUiModeChange: (mode: UiMode) => void;
   onNightModeChange: (enabled: boolean) => void;
   onShowAuroraChange: (enabled: boolean) => void;
   onShowAltitudeGuideChange: (enabled: boolean) => void;
@@ -1934,23 +1936,23 @@ function SettingsPage({
     <section className="page-panel settings-page">
       <div className="setting-row">
         <span>
-          <strong>表示テーマ</strong>
-          <small>標準 / 観望会</small>
+          <strong>表示モード</strong>
+          <small>標準 / 簡易</small>
         </span>
-        <div className="theme-switch" aria-label="表示テーマ">
+        <div className="theme-switch" aria-label="表示モード">
           <button
             type="button"
-            className={uiTheme === 'classic' ? 'active' : ''}
-            onClick={() => onUiThemeChange('classic')}
+            className={uiMode === 'standard' ? 'active' : ''}
+            onClick={() => onUiModeChange('standard')}
           >
             標準
           </button>
           <button
             type="button"
-            className={uiTheme === 'field' ? 'active' : ''}
-            onClick={() => onUiThemeChange('field')}
+            className={uiMode === 'simple' ? 'active' : ''}
+            onClick={() => onUiModeChange('simple')}
           >
-            観望会
+            簡易
           </button>
         </div>
       </div>
