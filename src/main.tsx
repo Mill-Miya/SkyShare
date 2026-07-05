@@ -64,7 +64,6 @@ const SETTINGS_ADMIN_PASSCODE = 'sorava';
 const DEFAULT_PUBLIC_GUEST_ACCESS_CODE = '0629';
 const SENSOR_AZIMUTH_UNSTABLE_ALTITUDE_DEG = 35;
 const SENSOR_AZIMUTH_VERY_UNSTABLE_ALTITUDE_DEG = 60;
-const SENSOR_BETA_AZIMUTH_FREEZE_DEG = 120;
 const CONFIGURED_GUEST_ACCESS_CODE = import.meta.env.VITE_GUEST_ACCESS_CODE?.trim() ?? '';
 const GUEST_ACCESS_CODE = CONFIGURED_GUEST_ACCESS_CODE || (
   isGitHubPagesHost() ? DEFAULT_PUBLIC_GUEST_ACCESS_CODE : ''
@@ -1088,7 +1087,6 @@ function App() {
       const alpha = typeof event.alpha === 'number' ? event.alpha : null;
       const beta = typeof event.beta === 'number' ? event.beta : null;
       const gamma = typeof event.gamma === 'number' ? event.gamma : null;
-      const betaAzimuthUnstable = beta !== null && Math.abs(beta) >= SENSOR_BETA_AZIMUTH_FREEZE_DEG;
 
       setSensorProbe({
         supported: true,
@@ -1113,19 +1111,17 @@ function App() {
         };
         const altitudeForAzimuth = Math.max(Math.abs(previous.altitudeDeg), Math.abs(correctedAltitudeDeg));
         // DeviceOrientation heading often flips near steep upward angles. Above
-        // Polaris-like altitude, and especially when beta folds past about
-        // 120 degrees, prefer a stable previous azimuth over a sudden
+        // Polaris-like altitude, prefer a stable previous azimuth over a sudden
         // 180-degree sensor jump.
         const highAltitude = altitudeForAzimuth > SENSOR_AZIMUTH_UNSTABLE_ALTITUDE_DEG;
         const veryHighAltitude = altitudeForAzimuth > SENSOR_AZIMUTH_VERY_UNSTABLE_ALTITUDE_DEG;
         const azimuthDeltaDeg = shortestAzimuthDelta(estimatedAzimuthDeg, previous.azimuthDeg);
         const suspiciousAzimuthFlip =
           highAltitude && Math.abs(azimuthDeltaDeg) > 75 && Math.abs(correctedAltitudeDeg - previous.altitudeDeg) < 45;
-        const freezeAzimuth = betaAzimuthUnstable || suspiciousAzimuthFlip;
         const azimuthSmoothing = veryHighAltitude ? 0.08 : highAltitude ? 0.12 : 0.22;
         const altitudeSmoothing = 0.24;
         const azimuthStep = limitedSensorStep(
-          freezeAzimuth ? 0 : azimuthDeltaDeg,
+          suspiciousAzimuthFlip ? 0 : azimuthDeltaDeg,
           azimuthSmoothing,
           veryHighAltitude ? 3 : highAltitude ? 5 : 14,
         );
