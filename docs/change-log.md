@@ -120,7 +120,6 @@ This file records implementation work and notable design changes so progress can
 - Frozen the current Sorava MVP state with documentation for branch `freeze/mvp-2026-06-29` and tag `v0.1.0-mvp`.
 - Lowered the Sensor Mode azimuth flip guard so compass-like heading jumps are suppressed above Polaris-like altitude.
 - Froze Sensor Mode azimuth updates when beta folds past about 120 degrees to avoid 180-degree heading reversals.
-- Added Sensor Probe diagnostics for raw versus applied azimuth, azimuth source, azimuth delta, and freeze reason to investigate iOS `webkitCompassHeading` high-angle flips.
 
 ## Ongoing Rule
 
