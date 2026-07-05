@@ -62,8 +62,6 @@ const UI_THEME_STORAGE_KEY = 'sorava-ui-theme';
 const DEFAULT_SENSOR_INVERT_ALTITUDE = false;
 const SETTINGS_ADMIN_PASSCODE = 'sorava';
 const DEFAULT_PUBLIC_GUEST_ACCESS_CODE = '0629';
-const SENSOR_AZIMUTH_UNSTABLE_ALTITUDE_DEG = 35;
-const SENSOR_AZIMUTH_VERY_UNSTABLE_ALTITUDE_DEG = 60;
 const CONFIGURED_GUEST_ACCESS_CODE = import.meta.env.VITE_GUEST_ACCESS_CODE?.trim() ?? '';
 const GUEST_ACCESS_CODE = CONFIGURED_GUEST_ACCESS_CODE || (
   isGitHubPagesHost() ? DEFAULT_PUBLIC_GUEST_ACCESS_CODE : ''
@@ -1109,21 +1107,16 @@ function App() {
           azimuthDeg: current.centerAzimuthDeg,
           altitudeDeg: current.centerAltitudeDeg,
         };
-        const altitudeForAzimuth = Math.max(Math.abs(previous.altitudeDeg), Math.abs(correctedAltitudeDeg));
-        // DeviceOrientation heading often flips near steep upward angles. Above
-        // Polaris-like altitude, prefer a stable previous azimuth over a sudden
-        // 180-degree sensor jump.
-        const highAltitude = altitudeForAzimuth > SENSOR_AZIMUTH_UNSTABLE_ALTITUDE_DEG;
-        const veryHighAltitude = altitudeForAzimuth > SENSOR_AZIMUTH_VERY_UNSTABLE_ALTITUDE_DEG;
         const azimuthDeltaDeg = shortestAzimuthDelta(estimatedAzimuthDeg, previous.azimuthDeg);
-        const suspiciousAzimuthFlip =
-          highAltitude && Math.abs(azimuthDeltaDeg) > 75 && Math.abs(correctedAltitudeDeg - previous.altitudeDeg) < 45;
-        const azimuthSmoothing = suspiciousAzimuthFlip ? 0.04 : veryHighAltitude ? 0.08 : highAltitude ? 0.12 : 0.22;
+        // Keep heading responsive even at steep device angles. iOS can report
+        // large beta values around upward views, so altitude-based azimuth
+        // freezing makes the compass feel locked.
+        const azimuthSmoothing = 0.24;
         const altitudeSmoothing = 0.24;
         const azimuthStep = limitedSensorStep(
           azimuthDeltaDeg,
           azimuthSmoothing,
-          suspiciousAzimuthFlip ? 2 : veryHighAltitude ? 3 : highAltitude ? 5 : 14,
+          18,
         );
         const altitudeStep = limitedSensorStep(correctedAltitudeDeg - previous.altitudeDeg, altitudeSmoothing, 12);
         const nextAzimuthDeg = normalizeAzimuth(

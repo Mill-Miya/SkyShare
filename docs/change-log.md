@@ -119,7 +119,7 @@ This file records implementation work and notable design changes so progress can
 - Simplified the Sky Sun marker into a white circle-style symbol for clearer field readability.
 - Frozen the current Sorava MVP state with documentation for branch `freeze/mvp-2026-06-29` and tag `v0.1.0-mvp`.
 - Lowered the Sensor Mode azimuth flip guard so compass-like heading jumps are suppressed above Polaris-like altitude.
-- Changed high-angle Sensor Mode heading protection from a hard azimuth freeze to a slow capped follow so iOS beta-around-130 movement does not lock to one direction.
+- Removed altitude-based Sensor Mode azimuth freezing so iOS beta-around-130 movement can still rotate the Sky heading.
 
 ## Ongoing Rule
 
