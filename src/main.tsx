@@ -233,11 +233,11 @@ function estimateSensorView(event: DeviceOrientationEvent) {
   const beta = typeof event.beta === 'number' ? event.beta : null;
   const webkitHeading = (event as DeviceOrientationEvent & { webkitCompassHeading?: number }).webkitCompassHeading;
   const estimatedAzimuthSource: SensorProbeState['estimatedAzimuthSource'] =
-    typeof webkitHeading === 'number' ? 'webkit' : alpha !== null ? 'alpha' : null;
-  const estimatedAzimuthDeg = estimatedAzimuthSource === 'webkit'
-    ? normalizeAzimuth(webkitHeading as number)
-    : estimatedAzimuthSource === 'alpha'
+    alpha !== null ? 'alpha' : typeof webkitHeading === 'number' ? 'webkit' : null;
+  const estimatedAzimuthDeg = estimatedAzimuthSource === 'alpha'
       ? normalizeAzimuth(360 - (alpha as number))
+    : estimatedAzimuthSource === 'webkit'
+      ? normalizeAzimuth(webkitHeading as number)
       : null;
   // Current test devices report beta near 90 at the horizon and closer to 0
   // when aiming upward, so 90 - abs(beta) follows the visible sky direction.
