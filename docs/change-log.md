@@ -120,6 +120,7 @@ This file records implementation work and notable design changes so progress can
 - Frozen the current Sorava MVP state with documentation for branch `freeze/mvp-2026-06-29` and tag `v0.1.0-mvp`.
 - Lowered the Sensor Mode azimuth flip guard so compass-like heading jumps are suppressed above Polaris-like altitude.
 - Removed altitude-based Sensor Mode azimuth freezing so iOS beta-around-130 movement can still rotate the Sky heading.
+- Added an iOS steep-angle Sensor Mode fallback that switches azimuth from sticky `webkitCompassHeading` to `alpha` above beta 120 degrees, with admin diagnostics for heading source.
 
 ## Ongoing Rule
 

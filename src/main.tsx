@@ -181,6 +181,8 @@ type SensorProbeState = {
   alpha: number | null;
   beta: number | null;
   gamma: number | null;
+  webkitHeading: number | null;
+  azimuthSource: 'webkit' | 'alpha' | null;
   absolute: boolean | null;
   estimatedAzimuthDeg: number | null;
   rawEstimatedAltitudeDeg: number | null;
@@ -206,6 +208,8 @@ function initialSensorProbe(): SensorProbeState {
     alpha: null,
     beta: null,
     gamma: null,
+    webkitHeading: null,
+    azimuthSource: null,
     absolute: null,
     estimatedAzimuthDeg: null,
     rawEstimatedAltitudeDeg: null,
@@ -218,17 +222,30 @@ function estimateSensorView(event: DeviceOrientationEvent) {
   const alpha = typeof event.alpha === 'number' ? event.alpha : null;
   const beta = typeof event.beta === 'number' ? event.beta : null;
   const webkitHeading = (event as DeviceOrientationEvent & { webkitCompassHeading?: number }).webkitCompassHeading;
-  const estimatedAzimuthDeg =
-    typeof webkitHeading === 'number'
-      ? normalizeAzimuth(webkitHeading)
-      : alpha !== null
-        ? normalizeAzimuth(360 - alpha)
-        : null;
+  const alphaAzimuthDeg = alpha !== null ? normalizeAzimuth(360 - alpha) : null;
+  const webkitAzimuthDeg = typeof webkitHeading === 'number' ? normalizeAzimuth(webkitHeading) : null;
+  // On iOS, webkitCompassHeading can become sticky when beta passes steep
+  // upward angles. In that range, alpha is less absolute but remains movable,
+  // which is preferable to a locked Sky heading.
+  const preferAlphaAtSteepAngle = beta !== null && Math.abs(beta) > 120 && alphaAzimuthDeg !== null;
+  const estimatedAzimuthDeg = preferAlphaAtSteepAngle
+    ? alphaAzimuthDeg
+    : webkitAzimuthDeg ?? alphaAzimuthDeg;
+  const azimuthSource: SensorProbeState['azimuthSource'] = estimatedAzimuthDeg === null
+    ? null
+    : preferAlphaAtSteepAngle || webkitAzimuthDeg === null
+      ? 'alpha'
+      : 'webkit';
   // Current test devices report beta near 90 at the horizon and closer to 0
   // when aiming upward, so 90 - abs(beta) follows the visible sky direction.
   const estimatedAltitudeDeg = beta !== null ? clamp(90 - Math.abs(beta), -90, 90) : null;
 
-  return { estimatedAzimuthDeg, estimatedAltitudeDeg };
+  return {
+    estimatedAzimuthDeg,
+    estimatedAltitudeDeg,
+    webkitHeading: webkitAzimuthDeg,
+    azimuthSource,
+  };
 }
 
 function limitedSensorStep(delta: number, smoothing: number, maxStepDeg: number) {
@@ -1077,7 +1094,12 @@ function App() {
       }
       lastSensorEventAtRef.current = now;
 
-      const { estimatedAzimuthDeg, estimatedAltitudeDeg: rawEstimatedAltitudeDeg } = estimateSensorView(event);
+      const {
+        estimatedAzimuthDeg,
+        estimatedAltitudeDeg: rawEstimatedAltitudeDeg,
+        webkitHeading,
+        azimuthSource,
+      } = estimateSensorView(event);
       const correctedAltitudeDeg =
         rawEstimatedAltitudeDeg === null
           ? null
@@ -1093,6 +1115,8 @@ function App() {
         alpha,
         beta,
         gamma,
+        webkitHeading,
+        azimuthSource,
         absolute: typeof event.absolute === 'boolean' ? event.absolute : null,
         estimatedAzimuthDeg,
         rawEstimatedAltitudeDeg,
@@ -2106,6 +2130,14 @@ function SettingsPage({
             <div>
               <span>gamma</span>
               <strong>{formatSensorValue(sensorProbe.gamma)}</strong>
+            </div>
+            <div>
+              <span>webkit方位</span>
+              <strong>{formatSensorValue(sensorProbe.webkitHeading)}°</strong>
+            </div>
+            <div>
+              <span>方位元</span>
+              <strong>{sensorProbe.azimuthSource ?? '--'}</strong>
             </div>
             <div>
               <span>absolute</span>
