@@ -62,6 +62,7 @@ const UI_THEME_STORAGE_KEY = 'sorava-ui-theme';
 const DEFAULT_SENSOR_INVERT_ALTITUDE = false;
 const SETTINGS_ADMIN_PASSCODE = 'sorava';
 const DEFAULT_PUBLIC_GUEST_ACCESS_CODE = '0629';
+const SENSOR_HORIZON_AZIMUTH_FREEZE_ALTITUDE_DEG = 3;
 const SENSOR_AZIMUTH_UNSTABLE_ALTITUDE_DEG = 35;
 const SENSOR_AZIMUTH_VERY_UNSTABLE_ALTITUDE_DEG = 60;
 const SENSOR_WEBKIT_HEADING_FREEZE_BETA_DEG = 88;
@@ -193,7 +194,7 @@ type SensorProbeState = {
   appliedAzimuthDeg: number | null;
   appliedAltitudeDeg: number | null;
   azimuthDeltaDeg: number | null;
-  azimuthFreezeReason: 'none' | 'beta_fold' | 'jump_guard' | null;
+  azimuthFreezeReason: 'none' | 'horizon_cross' | 'beta_fold' | 'jump_guard' | null;
 };
 
 function supportsDeviceOrientation() {
@@ -1108,6 +1109,9 @@ function App() {
       const alpha = typeof event.alpha === 'number' ? event.alpha : null;
       const beta = typeof event.beta === 'number' ? event.beta : null;
       const gamma = typeof event.gamma === 'number' ? event.gamma : null;
+      const horizonAzimuthUnstable =
+        correctedAltitudeDeg !== null &&
+        correctedAltitudeDeg <= SENSOR_HORIZON_AZIMUTH_FREEZE_ALTITUDE_DEG;
       const webkitHeadingFolded =
         estimatedAzimuthSource === 'webkit' &&
         beta !== null &&
@@ -1130,12 +1134,14 @@ function App() {
         Math.abs(azimuthDeltaDeg) > 75 &&
         correctedAltitudeDeg !== null &&
         Math.abs(correctedAltitudeDeg - previousSensorView.altitudeDeg) < 45;
-      const azimuthFreezeReason = webkitHeadingFolded
+      const azimuthFreezeReason = horizonAzimuthUnstable
+        ? 'horizon_cross'
+        : webkitHeadingFolded
         ? 'beta_fold'
         : suspiciousAzimuthFlip
           ? 'jump_guard'
           : 'none';
-      const freezeAzimuth = webkitHeadingFolded || suspiciousAzimuthFlip;
+      const freezeAzimuth = horizonAzimuthUnstable || webkitHeadingFolded || suspiciousAzimuthFlip;
       const azimuthSmoothing = veryHighAltitude ? 0.08 : highAltitude ? 0.12 : 0.22;
       const altitudeSmoothing = 0.24;
       const azimuthStep =
