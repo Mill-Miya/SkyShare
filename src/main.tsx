@@ -190,6 +190,15 @@ type SensorProbeState = {
   finalEstimatedAltitudeDeg: number | null;
 };
 
+type EstimatedSensorView = {
+  estimatedAzimuthDeg: number | null;
+  estimatedAltitudeDeg: number | null;
+  webkitHeading: number | null;
+  alphaAzimuthDeg: number | null;
+  useAlphaFallback: boolean;
+  azimuthSource: SensorProbeState['azimuthSource'];
+};
+
 function supportsDeviceOrientation() {
   return 'DeviceOrientationEvent' in window;
 }
@@ -244,8 +253,10 @@ function estimateSensorView(event: DeviceOrientationEvent) {
     estimatedAzimuthDeg,
     estimatedAltitudeDeg,
     webkitHeading: webkitAzimuthDeg,
+    alphaAzimuthDeg,
+    useAlphaFallback: preferAlphaAtSteepAngle,
     azimuthSource,
-  };
+  } satisfies EstimatedSensorView;
 }
 
 function limitedSensorStep(delta: number, smoothing: number, maxStepDeg: number) {
@@ -596,6 +607,7 @@ function App() {
   const viewAnimationRef = useRef<number | null>(null);
   const lastPointerSendRef = useRef<{ azimuthDeg: number; altitudeDeg: number; time: number } | null>(null);
   const smoothedSensorViewRef = useRef<{ azimuthDeg: number; altitudeDeg: number } | null>(null);
+  const alphaFallbackOffsetRef = useRef<number | null>(null);
   const lastSensorEventAtRef = useRef(0);
   const lastAbsoluteSensorEventAtRef = useRef(0);
 
@@ -618,6 +630,7 @@ function App() {
       // Calibration still works for the current page even if storage is unavailable.
     }
     smoothedSensorViewRef.current = null;
+    alphaFallbackOffsetRef.current = null;
   }, [invertSensorAltitude]);
 
   function clearSheetCloseTimer() {
@@ -676,6 +689,7 @@ function App() {
       setSensorModeEnabled(false);
       setSensorNotice(null);
       smoothedSensorViewRef.current = null;
+      alphaFallbackOffsetRef.current = null;
       return;
     }
 
@@ -697,6 +711,7 @@ function App() {
 
     cancelViewAnimation();
     smoothedSensorViewRef.current = null;
+    alphaFallbackOffsetRef.current = null;
     setSensorModeEnabled(true);
     setSensorNotice(null);
   }
@@ -1066,6 +1081,7 @@ function App() {
   useEffect(() => {
     if (!sensorModeEnabled) {
       smoothedSensorViewRef.current = null;
+      alphaFallbackOffsetRef.current = null;
       return;
     }
     cancelViewAnimation();
@@ -1098,6 +1114,8 @@ function App() {
         estimatedAzimuthDeg,
         estimatedAltitudeDeg: rawEstimatedAltitudeDeg,
         webkitHeading,
+        alphaAzimuthDeg,
+        useAlphaFallback,
         azimuthSource,
       } = estimateSensorView(event);
       const correctedAltitudeDeg =
@@ -1124,17 +1142,29 @@ function App() {
         finalEstimatedAltitudeDeg: correctedAltitudeDeg,
       });
 
-      if (!sensorModeEnabled || estimatedAzimuthDeg === null || correctedAltitudeDeg === null) return;
+      if (!sensorModeEnabled || estimatedAzimuthDeg === null || correctedAltitudeDeg === null) {
+        if (!useAlphaFallback) alphaFallbackOffsetRef.current = null;
+        return;
+      }
 
       setView((current) => {
         const previous = smoothedSensorViewRef.current ?? {
           azimuthDeg: current.centerAzimuthDeg,
           altitudeDeg: current.centerAltitudeDeg,
         };
-        const azimuthDeltaDeg = shortestAzimuthDelta(estimatedAzimuthDeg, previous.azimuthDeg);
-        // Keep heading responsive even at steep device angles. iOS can report
-        // large beta values around upward views, so altitude-based azimuth
-        // freezing makes the compass feel locked.
+        let nextEstimatedAzimuthDeg = estimatedAzimuthDeg;
+        if (useAlphaFallback && alphaAzimuthDeg !== null) {
+          if (alphaFallbackOffsetRef.current === null) {
+            alphaFallbackOffsetRef.current = shortestAzimuthDelta(previous.azimuthDeg, alphaAzimuthDeg);
+          }
+          nextEstimatedAzimuthDeg = normalizeAzimuth(alphaAzimuthDeg + alphaFallbackOffsetRef.current);
+        } else {
+          alphaFallbackOffsetRef.current = null;
+        }
+        const azimuthDeltaDeg = shortestAzimuthDelta(nextEstimatedAzimuthDeg, previous.azimuthDeg);
+        // Keep heading responsive even at steep device angles. When iOS
+        // webkitCompassHeading becomes sticky, the alpha fallback is offset to
+        // the current view so source changes stay continuous.
         const azimuthSmoothing = 0.24;
         const altitudeSmoothing = 0.24;
         const azimuthStep = limitedSensorStep(

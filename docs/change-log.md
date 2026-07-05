@@ -121,6 +121,7 @@ This file records implementation work and notable design changes so progress can
 - Lowered the Sensor Mode azimuth flip guard so compass-like heading jumps are suppressed above Polaris-like altitude.
 - Removed altitude-based Sensor Mode azimuth freezing so iOS beta-around-130 movement can still rotate the Sky heading.
 - Added an iOS steep-angle Sensor Mode fallback that switches azimuth from sticky `webkitCompassHeading` to `alpha` above beta 120 degrees, with admin diagnostics for heading source.
+- Added continuity offset calibration for the steep-angle alpha fallback so switching away from `webkitCompassHeading` does not cause a 180-degree azimuth jump.
 
 ## Ongoing Rule
 
