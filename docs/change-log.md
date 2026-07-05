@@ -125,6 +125,7 @@ This file records implementation work and notable design changes so progress can
 - Widened the near-horizon Sensor Mode azimuth hold band to reduce Android alpha spin before crossing the horizontal plane.
 - Changed Sensor Mode azimuth estimation to prefer `alpha` over iOS `webkitCompassHeading`, using webkit only as a fallback.
 - Stopped webkit-only `deviceorientationabsolute` events from suppressing regular alpha-bearing iOS orientation events.
+- Split alpha and webkit-fallback sensor throttling so webkit-only events cannot consume the processing slot before alpha events arrive.
 
 ## Ongoing Rule
 
