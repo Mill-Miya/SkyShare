@@ -1118,12 +1118,12 @@ function App() {
         const azimuthDeltaDeg = shortestAzimuthDelta(estimatedAzimuthDeg, previous.azimuthDeg);
         const suspiciousAzimuthFlip =
           highAltitude && Math.abs(azimuthDeltaDeg) > 75 && Math.abs(correctedAltitudeDeg - previous.altitudeDeg) < 45;
-        const azimuthSmoothing = veryHighAltitude ? 0.08 : highAltitude ? 0.12 : 0.22;
+        const azimuthSmoothing = suspiciousAzimuthFlip ? 0.04 : veryHighAltitude ? 0.08 : highAltitude ? 0.12 : 0.22;
         const altitudeSmoothing = 0.24;
         const azimuthStep = limitedSensorStep(
-          suspiciousAzimuthFlip ? 0 : azimuthDeltaDeg,
+          azimuthDeltaDeg,
           azimuthSmoothing,
-          veryHighAltitude ? 3 : highAltitude ? 5 : 14,
+          suspiciousAzimuthFlip ? 2 : veryHighAltitude ? 3 : highAltitude ? 5 : 14,
         );
         const altitudeStep = limitedSensorStep(correctedAltitudeDeg - previous.altitudeDeg, altitudeSmoothing, 12);
         const nextAzimuthDeg = normalizeAzimuth(
