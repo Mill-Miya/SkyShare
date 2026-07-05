@@ -124,7 +124,6 @@ This file records implementation work and notable design changes so progress can
 - Froze Sensor Mode azimuth near and below the horizon so iOS horizon crossing and Android below-plane folds do not spin the sky direction.
 - Widened the near-horizon Sensor Mode azimuth hold band to reduce Android alpha spin before crossing the horizontal plane.
 - Changed Sensor Mode azimuth estimation to prefer `alpha` over iOS `webkitCompassHeading`, using webkit only as a fallback.
-- Stopped webkit-only `deviceorientationabsolute` events from suppressing regular alpha-bearing iOS orientation events.
 
 ## Ongoing Rule
 

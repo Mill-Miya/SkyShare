@@ -596,7 +596,7 @@ function App() {
   const smoothedSensorViewRef = useRef<{ azimuthDeg: number; altitudeDeg: number } | null>(null);
   const viewRef = useRef<ViewState>(view);
   const lastSensorEventAtRef = useRef(0);
-  const lastAbsoluteAlphaSensorEventAtRef = useRef(0);
+  const lastAbsoluteSensorEventAtRef = useRef(0);
 
   const guestJoinBlocked = guestJoinGate.status === 'pass' || guestJoinGate.status === 'rejected';
 
@@ -1087,10 +1087,9 @@ function App() {
       eventType: SensorProbeState['eventType'] = 'deviceorientation',
     ) => {
       const now = performance.now();
-      const eventAlpha = typeof event.alpha === 'number' ? event.alpha : null;
-      if (eventType === 'deviceorientationabsolute' && eventAlpha !== null) {
-        lastAbsoluteAlphaSensorEventAtRef.current = now;
-      } else if (eventType === 'deviceorientation' && now - lastAbsoluteAlphaSensorEventAtRef.current < 1000) {
+      if (eventType === 'deviceorientationabsolute') {
+        lastAbsoluteSensorEventAtRef.current = now;
+      } else if (now - lastAbsoluteSensorEventAtRef.current < 1000) {
         return;
       }
       if (now - lastSensorEventAtRef.current < 33) {
@@ -1107,7 +1106,7 @@ function App() {
         rawEstimatedAltitudeDeg === null
           ? null
           : clamp((invertSensorAltitude ? -1 : 1) * rawEstimatedAltitudeDeg, -90, 90);
-      const alpha = eventAlpha;
+      const alpha = typeof event.alpha === 'number' ? event.alpha : null;
       const beta = typeof event.beta === 'number' ? event.beta : null;
       const gamma = typeof event.gamma === 'number' ? event.gamma : null;
       const horizonAzimuthUnstable =
