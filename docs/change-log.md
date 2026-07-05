@@ -123,7 +123,6 @@ This file records implementation work and notable design changes so progress can
 - Added Sensor Probe diagnostics for raw versus applied azimuth, azimuth source, azimuth delta, and freeze reason to investigate iOS `webkitCompassHeading` high-angle flips.
 - Froze Sensor Mode azimuth near and below the horizon so iOS horizon crossing and Android below-plane folds do not spin the sky direction.
 - Widened the near-horizon Sensor Mode azimuth hold band to reduce Android alpha spin before crossing the horizontal plane.
-- Changed Sensor Mode azimuth estimation to prefer `alpha` over iOS `webkitCompassHeading`, using webkit only as a fallback.
 
 ## Ongoing Rule
 
