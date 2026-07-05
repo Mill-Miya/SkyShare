@@ -64,7 +64,7 @@ const SETTINGS_ADMIN_PASSCODE = 'sorava';
 const DEFAULT_PUBLIC_GUEST_ACCESS_CODE = '0629';
 const SENSOR_AZIMUTH_UNSTABLE_ALTITUDE_DEG = 35;
 const SENSOR_AZIMUTH_VERY_UNSTABLE_ALTITUDE_DEG = 60;
-const SENSOR_BETA_AZIMUTH_FREEZE_DEG = 120;
+const SENSOR_WEBKIT_HEADING_FREEZE_BETA_DEG = 88;
 const CONFIGURED_GUEST_ACCESS_CODE = import.meta.env.VITE_GUEST_ACCESS_CODE?.trim() ?? '';
 const GUEST_ACCESS_CODE = CONFIGURED_GUEST_ACCESS_CODE || (
   isGitHubPagesHost() ? DEFAULT_PUBLIC_GUEST_ACCESS_CODE : ''
@@ -189,6 +189,11 @@ type SensorProbeState = {
   rawEstimatedAltitudeDeg: number | null;
   estimatedAltitudeDeg: number | null;
   finalEstimatedAltitudeDeg: number | null;
+  estimatedAzimuthSource: 'webkit' | 'alpha' | null;
+  appliedAzimuthDeg: number | null;
+  appliedAltitudeDeg: number | null;
+  azimuthDeltaDeg: number | null;
+  azimuthFreezeReason: 'none' | 'beta_fold' | 'jump_guard' | null;
 };
 
 function supportsDeviceOrientation() {
@@ -214,6 +219,11 @@ function initialSensorProbe(): SensorProbeState {
     rawEstimatedAltitudeDeg: null,
     estimatedAltitudeDeg: null,
     finalEstimatedAltitudeDeg: null,
+    estimatedAzimuthSource: null,
+    appliedAzimuthDeg: null,
+    appliedAltitudeDeg: null,
+    azimuthDeltaDeg: null,
+    azimuthFreezeReason: null,
   };
 }
 
@@ -221,17 +231,18 @@ function estimateSensorView(event: DeviceOrientationEvent) {
   const alpha = typeof event.alpha === 'number' ? event.alpha : null;
   const beta = typeof event.beta === 'number' ? event.beta : null;
   const webkitHeading = (event as DeviceOrientationEvent & { webkitCompassHeading?: number }).webkitCompassHeading;
-  const estimatedAzimuthDeg =
-    typeof webkitHeading === 'number'
-      ? normalizeAzimuth(webkitHeading)
-      : alpha !== null
-        ? normalizeAzimuth(360 - alpha)
-        : null;
+  const estimatedAzimuthSource: SensorProbeState['estimatedAzimuthSource'] =
+    typeof webkitHeading === 'number' ? 'webkit' : alpha !== null ? 'alpha' : null;
+  const estimatedAzimuthDeg = estimatedAzimuthSource === 'webkit'
+    ? normalizeAzimuth(webkitHeading as number)
+    : estimatedAzimuthSource === 'alpha'
+      ? normalizeAzimuth(360 - (alpha as number))
+      : null;
   // Current test devices report beta near 90 at the horizon and closer to 0
   // when aiming upward, so 90 - abs(beta) follows the visible sky direction.
   const estimatedAltitudeDeg = beta !== null ? clamp(90 - Math.abs(beta), -90, 90) : null;
 
-  return { estimatedAzimuthDeg, estimatedAltitudeDeg };
+  return { estimatedAzimuthDeg, estimatedAltitudeDeg, estimatedAzimuthSource };
 }
 
 function limitedSensorStep(delta: number, smoothing: number, maxStepDeg: number) {
@@ -582,6 +593,7 @@ function App() {
   const viewAnimationRef = useRef<number | null>(null);
   const lastPointerSendRef = useRef<{ azimuthDeg: number; altitudeDeg: number; time: number } | null>(null);
   const smoothedSensorViewRef = useRef<{ azimuthDeg: number; altitudeDeg: number } | null>(null);
+  const viewRef = useRef<ViewState>(view);
   const lastSensorEventAtRef = useRef(0);
   const lastAbsoluteSensorEventAtRef = useRef(0);
 
@@ -596,6 +608,10 @@ function App() {
       // The mode still applies for the current page if storage is unavailable.
     }
   }, [uiMode]);
+
+  useEffect(() => {
+    viewRef.current = view;
+  }, [view]);
 
   useEffect(() => {
     try {
@@ -1080,7 +1096,11 @@ function App() {
       }
       lastSensorEventAtRef.current = now;
 
-      const { estimatedAzimuthDeg, estimatedAltitudeDeg: rawEstimatedAltitudeDeg } = estimateSensorView(event);
+      const {
+        estimatedAzimuthDeg,
+        estimatedAltitudeDeg: rawEstimatedAltitudeDeg,
+        estimatedAzimuthSource,
+      } = estimateSensorView(event);
       const correctedAltitudeDeg =
         rawEstimatedAltitudeDeg === null
           ? null
@@ -1088,7 +1108,44 @@ function App() {
       const alpha = typeof event.alpha === 'number' ? event.alpha : null;
       const beta = typeof event.beta === 'number' ? event.beta : null;
       const gamma = typeof event.gamma === 'number' ? event.gamma : null;
-      const betaAzimuthUnstable = beta !== null && Math.abs(beta) >= SENSOR_BETA_AZIMUTH_FREEZE_DEG;
+      const webkitHeadingFolded =
+        estimatedAzimuthSource === 'webkit' &&
+        beta !== null &&
+        Math.abs(beta) >= SENSOR_WEBKIT_HEADING_FREEZE_BETA_DEG;
+      const previousSensorView = smoothedSensorViewRef.current ?? {
+        azimuthDeg: viewRef.current.centerAzimuthDeg,
+        altitudeDeg: viewRef.current.centerAltitudeDeg,
+      };
+      const altitudeForAzimuth =
+        correctedAltitudeDeg === null
+          ? Math.abs(previousSensorView.altitudeDeg)
+          : Math.max(Math.abs(previousSensorView.altitudeDeg), Math.abs(correctedAltitudeDeg));
+      const highAltitude = altitudeForAzimuth > SENSOR_AZIMUTH_UNSTABLE_ALTITUDE_DEG;
+      const veryHighAltitude = altitudeForAzimuth > SENSOR_AZIMUTH_VERY_UNSTABLE_ALTITUDE_DEG;
+      const azimuthDeltaDeg =
+        estimatedAzimuthDeg === null ? null : shortestAzimuthDelta(estimatedAzimuthDeg, previousSensorView.azimuthDeg);
+      const suspiciousAzimuthFlip =
+        highAltitude &&
+        azimuthDeltaDeg !== null &&
+        Math.abs(azimuthDeltaDeg) > 75 &&
+        correctedAltitudeDeg !== null &&
+        Math.abs(correctedAltitudeDeg - previousSensorView.altitudeDeg) < 45;
+      const azimuthFreezeReason = webkitHeadingFolded
+        ? 'beta_fold'
+        : suspiciousAzimuthFlip
+          ? 'jump_guard'
+          : 'none';
+      const freezeAzimuth = webkitHeadingFolded || suspiciousAzimuthFlip;
+      const azimuthSmoothing = veryHighAltitude ? 0.08 : highAltitude ? 0.12 : 0.22;
+      const altitudeSmoothing = 0.24;
+      const azimuthStep =
+        azimuthDeltaDeg === null ? 0 : limitedSensorStep(freezeAzimuth ? 0 : azimuthDeltaDeg, azimuthSmoothing, veryHighAltitude ? 3 : highAltitude ? 5 : 14);
+      const altitudeStep =
+        correctedAltitudeDeg === null
+          ? 0
+          : limitedSensorStep(correctedAltitudeDeg - previousSensorView.altitudeDeg, altitudeSmoothing, 12);
+      const nextAzimuthDeg = normalizeAzimuth(previousSensorView.azimuthDeg + azimuthStep);
+      const nextAltitudeDeg = clamp(previousSensorView.altitudeDeg + altitudeStep, -90, 90);
 
       setSensorProbe({
         supported: true,
@@ -1102,38 +1159,16 @@ function App() {
         rawEstimatedAltitudeDeg,
         estimatedAltitudeDeg: correctedAltitudeDeg,
         finalEstimatedAltitudeDeg: correctedAltitudeDeg,
+        estimatedAzimuthSource,
+        appliedAzimuthDeg: sensorModeEnabled && estimatedAzimuthDeg !== null && correctedAltitudeDeg !== null ? nextAzimuthDeg : null,
+        appliedAltitudeDeg: sensorModeEnabled && estimatedAzimuthDeg !== null && correctedAltitudeDeg !== null ? nextAltitudeDeg : null,
+        azimuthDeltaDeg,
+        azimuthFreezeReason,
       });
 
       if (!sensorModeEnabled || estimatedAzimuthDeg === null || correctedAltitudeDeg === null) return;
 
       setView((current) => {
-        const previous = smoothedSensorViewRef.current ?? {
-          azimuthDeg: current.centerAzimuthDeg,
-          altitudeDeg: current.centerAltitudeDeg,
-        };
-        const altitudeForAzimuth = Math.max(Math.abs(previous.altitudeDeg), Math.abs(correctedAltitudeDeg));
-        // DeviceOrientation heading often flips near steep upward angles. Above
-        // Polaris-like altitude, and especially when beta folds past about
-        // 120 degrees, prefer a stable previous azimuth over a sudden
-        // 180-degree sensor jump.
-        const highAltitude = altitudeForAzimuth > SENSOR_AZIMUTH_UNSTABLE_ALTITUDE_DEG;
-        const veryHighAltitude = altitudeForAzimuth > SENSOR_AZIMUTH_VERY_UNSTABLE_ALTITUDE_DEG;
-        const azimuthDeltaDeg = shortestAzimuthDelta(estimatedAzimuthDeg, previous.azimuthDeg);
-        const suspiciousAzimuthFlip =
-          highAltitude && Math.abs(azimuthDeltaDeg) > 75 && Math.abs(correctedAltitudeDeg - previous.altitudeDeg) < 45;
-        const freezeAzimuth = betaAzimuthUnstable || suspiciousAzimuthFlip;
-        const azimuthSmoothing = veryHighAltitude ? 0.08 : highAltitude ? 0.12 : 0.22;
-        const altitudeSmoothing = 0.24;
-        const azimuthStep = limitedSensorStep(
-          freezeAzimuth ? 0 : azimuthDeltaDeg,
-          azimuthSmoothing,
-          veryHighAltitude ? 3 : highAltitude ? 5 : 14,
-        );
-        const altitudeStep = limitedSensorStep(correctedAltitudeDeg - previous.altitudeDeg, altitudeSmoothing, 12);
-        const nextAzimuthDeg = normalizeAzimuth(
-          previous.azimuthDeg + azimuthStep,
-        );
-        const nextAltitudeDeg = clamp(previous.altitudeDeg + altitudeStep, -90, 90);
         smoothedSensorViewRef.current = { azimuthDeg: nextAzimuthDeg, altitudeDeg: nextAltitudeDeg };
 
         return {
@@ -2127,12 +2162,32 @@ function SettingsPage({
               <strong>{formatSensorValue(sensorProbe.estimatedAzimuthDeg)}°</strong>
             </div>
             <div>
+              <span>方位元</span>
+              <strong>{sensorProbe.estimatedAzimuthSource ?? '--'}</strong>
+            </div>
+            <div>
+              <span>適用方位</span>
+              <strong>{formatSensorValue(sensorProbe.appliedAzimuthDeg)}°</strong>
+            </div>
+            <div>
+              <span>方位差分</span>
+              <strong>{formatSensorValue(sensorProbe.azimuthDeltaDeg)}°</strong>
+            </div>
+            <div>
+              <span>方位固定</span>
+              <strong>{sensorProbe.azimuthFreezeReason ?? '--'}</strong>
+            </div>
+            <div>
               <span>raw高度</span>
               <strong>{formatSensorValue(sensorProbe.rawEstimatedAltitudeDeg)}°</strong>
             </div>
             <div>
               <span>final高度</span>
               <strong>{formatSensorValue(sensorProbe.finalEstimatedAltitudeDeg)}°</strong>
+            </div>
+            <div>
+              <span>適用高度</span>
+              <strong>{formatSensorValue(sensorProbe.appliedAltitudeDeg)}°</strong>
             </div>
             <div>
               <span>高度反転</span>
