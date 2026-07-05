@@ -595,8 +595,8 @@ function App() {
   const lastPointerSendRef = useRef<{ azimuthDeg: number; altitudeDeg: number; time: number } | null>(null);
   const smoothedSensorViewRef = useRef<{ azimuthDeg: number; altitudeDeg: number } | null>(null);
   const viewRef = useRef<ViewState>(view);
-  const lastSensorEventAtRef = useRef(0);
-  const lastAbsoluteAlphaSensorEventAtRef = useRef(0);
+  const lastAlphaSensorEventAtRef = useRef(0);
+  const lastFallbackSensorEventAtRef = useRef(0);
 
   const guestJoinBlocked = guestJoinGate.status === 'pass' || guestJoinGate.status === 'rejected';
 
@@ -1088,15 +1088,17 @@ function App() {
     ) => {
       const now = performance.now();
       const eventAlpha = typeof event.alpha === 'number' ? event.alpha : null;
-      if (eventType === 'deviceorientationabsolute' && eventAlpha !== null) {
-        lastAbsoluteAlphaSensorEventAtRef.current = now;
-      } else if (eventType === 'deviceorientation' && now - lastAbsoluteAlphaSensorEventAtRef.current < 1000) {
-        return;
+      if (eventAlpha !== null) {
+        if (now - lastAlphaSensorEventAtRef.current < 33) {
+          return;
+        }
+        lastAlphaSensorEventAtRef.current = now;
+      } else {
+        if (now - lastAlphaSensorEventAtRef.current < 1000 || now - lastFallbackSensorEventAtRef.current < 33) {
+          return;
+        }
+        lastFallbackSensorEventAtRef.current = now;
       }
-      if (now - lastSensorEventAtRef.current < 33) {
-        return;
-      }
-      lastSensorEventAtRef.current = now;
 
       const {
         estimatedAzimuthDeg,
