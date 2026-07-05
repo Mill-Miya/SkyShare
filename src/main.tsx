@@ -232,13 +232,14 @@ function estimateSensorView(event: DeviceOrientationEvent) {
   const beta = typeof event.beta === 'number' ? event.beta : null;
   const webkitHeading = (event as DeviceOrientationEvent & { webkitCompassHeading?: number }).webkitCompassHeading;
   const alphaAzimuthDeg = alpha !== null ? normalizeAzimuth(360 - alpha) : null;
+  const steepAlphaAzimuthDeg = alpha !== null ? normalizeAzimuth(alpha) : null;
   const webkitAzimuthDeg = typeof webkitHeading === 'number' ? normalizeAzimuth(webkitHeading) : null;
   // On iOS, webkitCompassHeading can become sticky when beta passes steep
-  // upward angles. In that range, alpha is less absolute but remains movable,
-  // which is preferable to a locked Sky heading.
-  const preferAlphaAtSteepAngle = beta !== null && Math.abs(beta) > 120 && alphaAzimuthDeg !== null;
+  // upward angles. In that range, raw alpha remains movable, and using alpha
+  // directly keeps the fallback rotation direction from being inverted.
+  const preferAlphaAtSteepAngle = beta !== null && Math.abs(beta) > 120 && steepAlphaAzimuthDeg !== null;
   const estimatedAzimuthDeg = preferAlphaAtSteepAngle
-    ? alphaAzimuthDeg
+    ? steepAlphaAzimuthDeg
     : webkitAzimuthDeg ?? alphaAzimuthDeg;
   const azimuthSource: SensorProbeState['azimuthSource'] = estimatedAzimuthDeg === null
     ? null
@@ -253,7 +254,7 @@ function estimateSensorView(event: DeviceOrientationEvent) {
     estimatedAzimuthDeg,
     estimatedAltitudeDeg,
     webkitHeading: webkitAzimuthDeg,
-    alphaAzimuthDeg,
+    alphaAzimuthDeg: preferAlphaAtSteepAngle ? steepAlphaAzimuthDeg : alphaAzimuthDeg,
     useAlphaFallback: preferAlphaAtSteepAngle,
     azimuthSource,
   } satisfies EstimatedSensorView;
