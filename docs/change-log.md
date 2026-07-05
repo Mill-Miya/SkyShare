@@ -118,6 +118,7 @@ This file records implementation work and notable design changes so progress can
 - Added a subtle Sky canvas Sun marker using the existing client-side Sun position, without making the Sun a shared target.
 - Simplified the Sky Sun marker into a white circle-style symbol for clearer field readability.
 - Frozen the current Sorava MVP state with documentation for branch `freeze/mvp-2026-06-29` and tag `v0.1.0-mvp`.
+- Lowered the Sensor Mode azimuth flip guard so compass-like heading jumps are suppressed above Polaris-like altitude.
 
 ## Ongoing Rule
 
