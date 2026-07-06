@@ -67,8 +67,7 @@ const CONFIGURED_GUEST_ACCESS_CODE = import.meta.env.VITE_GUEST_ACCESS_CODE?.tri
 const GUEST_ACCESS_CODE = GUEST_ACCESS_CODE_ENABLED
   ? CONFIGURED_GUEST_ACCESS_CODE || (isGitHubPagesHost() ? DEFAULT_PUBLIC_GUEST_ACCESS_CODE : '')
   : '';
-const GUEST_UNLOCKED_KEY = 'sorava_guest_unlocked';
-const GUEST_REJECTED_KEY = 'sorava_guest_rejected';
+const MAINTENANCE_UNLOCKED_KEY = 'sorava_maintenance_unlocked_v2';
 
 type GuestJoinGateState = {
   status: 'none' | 'pass' | 'rejected';
@@ -169,7 +168,7 @@ function writeSessionFlag(key: string, value: boolean) {
 function getInitialGuestJoinGate(): GuestJoinGateState {
   const sessionId = getJoinSessionId();
   if (!GUEST_ACCESS_CODE) return { status: 'none', sessionId, error: null };
-  if (readSessionFlag(GUEST_UNLOCKED_KEY)) return { status: 'none', sessionId, error: null };
+  if (readSessionFlag(MAINTENANCE_UNLOCKED_KEY)) return { status: 'none', sessionId, error: null };
   return { status: 'pass', sessionId, error: null };
 }
 
@@ -969,8 +968,7 @@ function App() {
     const sessionId = guestJoinGate.sessionId;
 
     if (guestPassInput.trim() === GUEST_ACCESS_CODE) {
-      writeSessionFlag(GUEST_UNLOCKED_KEY, true);
-      writeSessionFlag(GUEST_REJECTED_KEY, false);
+      writeSessionFlag(MAINTENANCE_UNLOCKED_KEY, true);
       setGuestJoinGate({ status: 'none', sessionId, error: null });
       setGuestPassInput('');
       if (sessionId) {
@@ -979,7 +977,7 @@ function App() {
       return;
     }
 
-    writeSessionFlag(GUEST_UNLOCKED_KEY, false);
+    writeSessionFlag(MAINTENANCE_UNLOCKED_KEY, false);
     setGuestPassInput('');
     setGuestJoinGate({ status: 'pass', sessionId, error: 'パスワードが違います' });
     setConnectionStatus('disconnected');
