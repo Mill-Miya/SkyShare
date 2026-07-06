@@ -131,6 +131,7 @@ This file records implementation work and notable design changes so progress can
 - Ensured Guests also clear suppressed guidance and target state when receiving pointer share state or updates, so the Host direction panel and red diamond marker can appear after reconnects or previous target animations.
 - Changed the Host direction red diamond marker to disappear when the shared direction is outside the current Sky view instead of clamping to the screen edge.
 - Hid the pointer guidance reticle and red diamond on the Host side while keeping the Host direction guidance visible for Guests.
+- Allowed Guests to use their own local target guidance while joined to a session only when Host sharing is OFF, with Host target/pointer sharing clearing the Guest local selection for Host-priority behavior.
 
 ## Ongoing Rule
 

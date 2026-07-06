@@ -787,7 +787,9 @@ function App() {
       }
       setParticipantCount(message.participantCount);
       setSessionError(null);
-      if (nextShareMode === 'target' && message.targetId) {
+      if (sessionRole === 'guest' && nextShareMode !== 'off') {
+        setSelectedTargetId(null);
+      } else if (sessionRole !== 'guest' && nextShareMode === 'target' && message.targetId) {
         setSelectedTargetId(message.targetId);
       }
       return;
@@ -798,7 +800,9 @@ function App() {
       setSharedTargetId(message.targetId);
       setShareMode(nextShareMode);
       setSharedPointer(null);
-      if (message.targetId) {
+      if (sessionRole === 'guest' && nextShareMode !== 'off') {
+        setSelectedTargetId(null);
+      } else if (sessionRole !== 'guest' && message.targetId) {
         setSelectedTargetId(message.targetId);
       }
       return;
@@ -808,6 +812,9 @@ function App() {
       setSharedTargetId(null);
       setShareMode('pointer');
       setSharedPointer({ azimuthDeg: message.azimuth, altitudeDeg: message.altitude });
+      if (sessionRole === 'guest') {
+        setSelectedTargetId(null);
+      }
       setGuidanceSuppressed(false);
       return;
     }
@@ -1280,7 +1287,7 @@ function App() {
     shareMode === 'pointer'
       ? null
       : sessionRole === 'guest'
-        ? (shareMode === 'target' ? sharedTargetId : null)
+        ? (shareMode === 'target' ? sharedTargetId : selectedTargetId)
         : selectedTargetId;
   const selectedPosition = positions.find((position) => position.id === activeTargetId) ?? null;
   const guidance: GuidanceState | null = selectedPosition ? calculateGuidance(selectedPosition, view) : null;
