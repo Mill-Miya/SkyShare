@@ -126,6 +126,7 @@ This file records implementation work and notable design changes so progress can
 - Added pre-fallback alpha direction learning against `webkitCompassHeading`, so steep-angle Sensor Mode can choose direct or inverted alpha movement per device instead of hard-coding one sign.
 - Temporarily disabled the site-wide Guest PASS gate while keeping the PASS code path in place for later re-enablement.
 - Made A display mode the default for first-time visitors and hid the `捕捉しました` guidance text in A mode while keeping the acquired symbol.
+- Made pointer sharing visible like target guidance by showing a `Host方向` guidance panel for Guests and rendering the Host direction as a red diamond marker on the Sky.
 
 ## Ongoing Rule
 

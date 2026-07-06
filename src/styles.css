@@ -334,48 +334,61 @@ input {
   position: absolute;
   left: 0;
   top: 0;
-  width: 34px;
-  height: 34px;
-  margin: -17px 0 0 -17px;
-  border: 1px solid rgba(126, 201, 255, 0.9);
-  border-radius: 50%;
-  box-shadow: 0 0 16px rgba(84, 178, 255, 0.34);
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
   pointer-events: none;
 }
 
-.pointer-marker::before,
-.pointer-marker::after {
+.pointer-marker::before {
   position: absolute;
   left: 50%;
   top: 50%;
-  background: rgba(126, 201, 255, 0.9);
+  width: 15px;
+  height: 15px;
+  border: 1px solid rgba(255, 110, 96, 0.98);
+  background: rgba(182, 34, 28, 0.72);
+  box-shadow: 0 0 12px rgba(255, 72, 58, 0.42);
   content: "";
-  transform: translate(-50%, -50%);
-}
-
-.pointer-marker::before {
-  width: 18px;
-  height: 1px;
-}
-
-.pointer-marker::after {
-  width: 1px;
-  height: 18px;
+  transform: translate(-50%, -50%) rotate(45deg);
 }
 
 .pointer-marker span {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
-  background: rgba(126, 201, 255, 0.95);
+  background: rgba(255, 232, 220, 0.96);
   transform: translate(-50%, -50%);
 }
 
 .pointer-marker.edge {
-  opacity: 0.72;
+  opacity: 0.86;
+}
+
+.guidance-panel.pointer-guidance {
+  border-color: rgba(255, 110, 96, 0.32);
+  color: #ffb0a4;
+  background: rgba(18, 0, 0, 0.54);
+}
+
+.guidance-panel.pointer-guidance .shared-badge {
+  color: #ff8a7a;
+}
+
+.guidance-panel.pointer-guidance .guidance-compass {
+  border-color: rgba(255, 110, 96, 0.24);
+  background: radial-gradient(circle, rgba(255, 80, 64, 0.12), rgba(18, 0, 0, 0.18) 62%);
+}
+
+.guidance-panel.pointer-guidance .guidance-triangle {
+  filter: drop-shadow(0 0 8px rgba(255, 78, 58, 0.36));
+}
+
+.guidance-panel.pointer-guidance .guidance-near-dot {
+  box-shadow: 0 0 12px rgba(255, 78, 58, 0.36);
 }
 
 .guidance-compass {

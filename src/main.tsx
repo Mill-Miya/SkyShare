@@ -1275,6 +1275,11 @@ function App() {
   const selectedPosition = positions.find((position) => position.id === activeTargetId) ?? null;
   const guidance: GuidanceState | null = selectedPosition ? calculateGuidance(selectedPosition, view) : null;
   const selectedStatus = selectedPosition ? getAltitudeStatus(selectedPosition.altitudeDeg) : null;
+  const hostPointerPosition: TargetPosition | null =
+    sessionRole === 'guest' && shareMode === 'pointer' && sharedPointer
+      ? { id: 'host_pointer', azimuthDeg: sharedPointer.azimuthDeg, altitudeDeg: sharedPointer.altitudeDeg }
+      : null;
+  const hostPointerGuidance = hostPointerPosition ? calculateGuidance(hostPointerPosition, view) : null;
 
   if (guestJoinGate.status === 'rejected') {
     return <GuestRejectedScreen nightMode={nightMode} uiMode={uiMode} />;
@@ -1368,10 +1373,25 @@ function App() {
             sharedByHost={sessionRole === 'guest' && sharedTargetId === selectedPosition.id}
           />
         )}
-        {sessionRole === 'guest' && !sharedTargetId && (
+        {!guidanceSuppressed && hostPointerGuidance && hostPointerPosition && (
+          <GuidanceOverlay
+            guidance={hostPointerGuidance}
+            selectedPosition={hostPointerPosition}
+            selectedStatus={null}
+            nightMode={nightMode}
+            uiMode={uiMode}
+            sharedByHost
+            labelOverride="Host方向"
+            pointerMode
+          />
+        )}
+        {sessionRole === 'guest' && shareMode !== 'pointer' && !sharedTargetId && (
           <div className="shared-empty-note">
-            {shareMode === 'pointer' ? '方向案内中' : '共有されている天体はありません'}
+            共有されている天体はありません
           </div>
+        )}
+        {sessionRole === 'guest' && shareMode === 'pointer' && !sharedPointer && (
+          <div className="shared-empty-note">Host方向を待機中</div>
         )}
         {sessionRole === 'guest' && shareMode === 'pointer' && sharedPointer && viewMetrics && (
           <PointerOverlay pointer={sharedPointer} view={view} metrics={viewMetrics} />
@@ -1523,6 +1543,8 @@ function GuidanceOverlay({
   nightMode,
   uiMode,
   sharedByHost,
+  labelOverride,
+  pointerMode = false,
 }: {
   guidance: GuidanceState;
   selectedPosition: TargetPosition;
@@ -1530,6 +1552,8 @@ function GuidanceOverlay({
   nightMode: boolean;
   uiMode: UiMode;
   sharedByHost: boolean;
+  labelOverride?: string;
+  pointerMode?: boolean;
 }) {
   const target = getTargetDefinition(selectedPosition.id);
   const statusLabel = selectedStatus ? getAltitudeStatusLabel(selectedStatus) : '';
@@ -1561,9 +1585,9 @@ function GuidanceOverlay({
   ].join(' ');
 
   return (
-    <div className={`guidance-panel ${guidance.acquired ? 'acquired' : ''} ${nightMode ? 'night' : ''}`}>
-      <div className="guidance-target">{target?.label ?? selectedPosition.id}</div>
-      {sharedByHost && <div className="shared-badge">Host共有中</div>}
+    <div className={`guidance-panel ${guidance.acquired ? 'acquired' : ''} ${nightMode ? 'night' : ''} ${pointerMode ? 'pointer-guidance' : ''}`}>
+      <div className="guidance-target">{labelOverride ?? target?.label ?? selectedPosition.id}</div>
+      {sharedByHost && <div className="shared-badge">{pointerMode ? '方向案内中' : 'Host共有中'}</div>}
       <div className="guidance-compass" aria-label={`誘導 ${guidance.arrow}`}>
         {guidance.acquired ? (
           <span className="guidance-acquired-symbol">◎</span>
@@ -1587,7 +1611,7 @@ function GuidanceOverlay({
       <div className="guidance-meta">
         方位 {Math.round(selectedPosition.azimuthDeg)}° / 高度 {Math.round(selectedPosition.altitudeDeg)}°
       </div>
-      {guidance.acquired && uiMode !== 'simple' && <div className="target-acquired">捕捉しました</div>}
+      {guidance.acquired && uiMode !== 'simple' && !pointerMode && <div className="target-acquired">捕捉しました</div>}
       {selectedStatus !== 'visible' && <div className={`altitude-warning ${selectedStatus}`}>{statusLabel}</div>}
     </div>
   );
