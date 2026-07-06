@@ -779,12 +779,15 @@ function App() {
     if (message.type === 'session:state') {
       const nextShareMode = message.shareMode ?? (message.targetId ? 'target' : 'off');
       setSessionId(message.sessionId);
-      setSharedTargetId(message.targetId);
+      setSharedTargetId(nextShareMode === 'pointer' ? null : message.targetId);
       setShareMode(nextShareMode);
       setSharedPointer(message.pointer ?? null);
+      if (nextShareMode === 'pointer') {
+        setGuidanceSuppressed(false);
+      }
       setParticipantCount(message.participantCount);
       setSessionError(null);
-      if (message.targetId) {
+      if (nextShareMode === 'target' && message.targetId) {
         setSelectedTargetId(message.targetId);
       }
       return;
@@ -805,6 +808,7 @@ function App() {
       setSharedTargetId(null);
       setShareMode('pointer');
       setSharedPointer({ azimuthDeg: message.azimuth, altitudeDeg: message.altitude });
+      setGuidanceSuppressed(false);
       return;
     }
 
