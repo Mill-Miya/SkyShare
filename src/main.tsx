@@ -915,6 +915,7 @@ function App() {
     setSharedTargetId(null);
     setShareMode('pointer');
     setSharedPointer(pointer);
+    setGuidanceSuppressed(false);
     lastPointerSendRef.current = { ...pointer, time: performance.now() };
     sendSessionMessage({
       type: 'pointer:update',
@@ -1271,12 +1272,17 @@ function App() {
   }, [location, time]);
   const skyBrightnessState = sunPosition ? getSkyBrightnessState(sunPosition.altitudeDeg) : null;
 
-  const activeTargetId = sessionRole === 'guest' ? (shareMode === 'target' ? sharedTargetId : null) : selectedTargetId;
+  const activeTargetId =
+    shareMode === 'pointer'
+      ? null
+      : sessionRole === 'guest'
+        ? (shareMode === 'target' ? sharedTargetId : null)
+        : selectedTargetId;
   const selectedPosition = positions.find((position) => position.id === activeTargetId) ?? null;
   const guidance: GuidanceState | null = selectedPosition ? calculateGuidance(selectedPosition, view) : null;
   const selectedStatus = selectedPosition ? getAltitudeStatus(selectedPosition.altitudeDeg) : null;
   const hostPointerPosition: TargetPosition | null =
-    sessionRole === 'guest' && shareMode === 'pointer' && sharedPointer
+    shareMode === 'pointer' && sharedPointer
       ? { id: 'host_pointer', azimuthDeg: sharedPointer.azimuthDeg, altitudeDeg: sharedPointer.altitudeDeg }
       : null;
   const hostPointerGuidance = hostPointerPosition ? calculateGuidance(hostPointerPosition, view) : null;
