@@ -1286,7 +1286,7 @@ function App() {
   const guidance: GuidanceState | null = selectedPosition ? calculateGuidance(selectedPosition, view) : null;
   const selectedStatus = selectedPosition ? getAltitudeStatus(selectedPosition.altitudeDeg) : null;
   const hostPointerPosition: TargetPosition | null =
-    shareMode === 'pointer' && sharedPointer
+    sessionRole === 'guest' && shareMode === 'pointer' && sharedPointer
       ? { id: 'host_pointer', azimuthDeg: sharedPointer.azimuthDeg, altitudeDeg: sharedPointer.altitudeDeg }
       : null;
   const hostPointerGuidance = hostPointerPosition ? calculateGuidance(hostPointerPosition, view) : null;
