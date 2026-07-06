@@ -126,10 +126,13 @@ export function drawStars(
 
     const brightness = clamp((2.7 - star.magnitude) / 4.2, 0.12, 0.82);
     const radius = 0.45 + brightness * 1.15;
+    const horizonAlphaScale = star.altitudeDeg < 0 ? 0.5 : 1;
+    const fillAlpha = (0.22 + brightness * 0.5) * alphaScale * horizonAlphaScale;
+    const shadowAlpha = (0.2 + brightness * 0.28) * alphaScale * horizonAlphaScale;
     context.beginPath();
     context.arc(x, y, radius, 0, Math.PI * 2);
-    context.fillStyle = `rgba(${nightMode ? '255, 96, 78' : star.color}, ${(0.22 + brightness * 0.5) * alphaScale})`;
-    context.shadowColor = `rgba(${nightMode ? '255, 68, 52' : star.color}, ${(0.2 + brightness * 0.28) * alphaScale})`;
+    context.fillStyle = `rgba(${nightMode ? '255, 96, 78' : star.color}, ${fillAlpha})`;
+    context.shadowColor = `rgba(${nightMode ? '255, 68, 52' : star.color}, ${shadowAlpha})`;
     context.shadowBlur = 1.5 + brightness * 4.5;
     context.fill();
   });
@@ -352,8 +355,15 @@ export function drawTargetObject(
 ) {
   const radius = (target?.radius ?? 5) + (selected ? 1.3 : 0);
   const color = nightMode && target?.id !== 'moon' ? '#ff6a58' : target?.color ?? '#ffd166';
+  const horizonAlpha =
+    selected
+      ? 1
+        : position.altitudeDeg < 0
+          ? 0.5
+          : 1;
 
   context.save();
+  context.globalAlpha = horizonAlpha;
   context.shadowColor = nightMode ? 'rgba(255, 59, 45, 0.22)' : target?.glow ?? 'rgba(255, 255, 255, 0.45)';
   context.shadowBlur = selected ? 10 : target?.id === 'moon' ? 7 : 2.5;
 

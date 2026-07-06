@@ -59,9 +59,9 @@ const DEFAULT_PUBLIC_API_BASE_URL = 'https://skyshare-nhcb.onrender.com';
 const DEFAULT_PUBLIC_WS_URL = 'wss://skyshare-nhcb.onrender.com/ws';
 const SENSOR_INVERT_ALTITUDE_KEY = 'sorava.sensor.invertAltitude.v3';
 const UI_THEME_STORAGE_KEY = 'sorava-ui-theme';
-const DEFAULT_SENSOR_INVERT_ALTITUDE = false;
+const DEFAULT_SENSOR_INVERT_ALTITUDE = true;
 const SETTINGS_ADMIN_PASSCODE = 'sorava';
-const GUEST_ACCESS_CODE_ENABLED = false;
+const GUEST_ACCESS_CODE_ENABLED = true;
 const DEFAULT_PUBLIC_GUEST_ACCESS_CODE = '0629';
 const CONFIGURED_GUEST_ACCESS_CODE = import.meta.env.VITE_GUEST_ACCESS_CODE?.trim() ?? '';
 const GUEST_ACCESS_CODE = GUEST_ACCESS_CODE_ENABLED
@@ -73,6 +73,7 @@ const GUEST_REJECTED_KEY = 'sorava_guest_rejected';
 type GuestJoinGateState = {
   status: 'none' | 'pass' | 'rejected';
   sessionId: string | null;
+  error: string | null;
 };
 
 type UiMode = 'standard' | 'simple';
@@ -139,9 +140,9 @@ function readStoredUiMode(): UiMode {
     const storedValue = window.localStorage.getItem(UI_THEME_STORAGE_KEY);
     if (storedValue === 'simple' || storedValue === 'field') return 'simple';
     if (storedValue === 'standard' || storedValue === 'classic') return 'standard';
-    return 'simple';
+    return 'standard';
   } catch {
-    return 'simple';
+    return 'standard';
   }
 }
 
@@ -167,10 +168,9 @@ function writeSessionFlag(key: string, value: boolean) {
 
 function getInitialGuestJoinGate(): GuestJoinGateState {
   const sessionId = getJoinSessionId();
-  if (!GUEST_ACCESS_CODE) return { status: 'none', sessionId };
-  if (readSessionFlag(GUEST_REJECTED_KEY)) return { status: 'rejected', sessionId };
-  if (readSessionFlag(GUEST_UNLOCKED_KEY)) return { status: 'none', sessionId };
-  return { status: 'pass', sessionId };
+  if (!GUEST_ACCESS_CODE) return { status: 'none', sessionId, error: null };
+  if (readSessionFlag(GUEST_UNLOCKED_KEY)) return { status: 'none', sessionId, error: null };
+  return { status: 'pass', sessionId, error: null };
 }
 
 type SensorPermissionState = 'unsupported' | 'prompt' | 'granted' | 'denied' | 'error';
@@ -281,6 +281,7 @@ function SkyCanvas({
   showAurora,
   showAltitudeGuide,
   sensorModeEnabled,
+  showHostPointerCenter,
   debug,
   onViewChange,
   onMetricsChange,
@@ -297,6 +298,7 @@ function SkyCanvas({
   showAurora: boolean;
   showAltitudeGuide: boolean;
   sensorModeEnabled: boolean;
+  showHostPointerCenter: boolean;
   debug: boolean;
   onViewChange: React.Dispatch<React.SetStateAction<ViewState>>;
   onMetricsChange: (metrics: ViewMetrics) => void;
@@ -432,14 +434,16 @@ function SkyCanvas({
       }
     });
 
-    context.strokeStyle = nightMode ? 'rgba(255, 78, 58, 0.55)' : 'rgba(255, 255, 255, 0.45)';
-    context.lineWidth = 1;
-    context.beginPath();
-    context.moveTo(centerX - 9, centerY);
-    context.lineTo(centerX + 9, centerY);
-    context.moveTo(centerX, centerY - 9);
-    context.lineTo(centerX, centerY + 9);
-    context.stroke();
+    if (!showHostPointerCenter) {
+      context.strokeStyle = nightMode ? 'rgba(255, 78, 58, 0.55)' : 'rgba(255, 255, 255, 0.45)';
+      context.lineWidth = 1;
+      context.beginPath();
+      context.moveTo(centerX - 9, centerY);
+      context.lineTo(centerX + 9, centerY);
+      context.moveTo(centerX, centerY - 9);
+      context.lineTo(centerX, centerY + 9);
+      context.stroke();
+    }
 
     if (debug) {
       context.fillStyle = nightMode ? 'rgba(255, 86, 70, 0.78)' : 'rgba(255, 248, 220, 0.7)';
@@ -451,7 +455,6 @@ function SkyCanvas({
 
     positions.forEach((position) => {
       const selected = selectedTargetId === position.id;
-      if (position.altitudeDeg < 0 && !selected && !debug) return;
       const x = centerX + shortestAzimuthDelta(position.azimuthDeg, view.centerAzimuthDeg) * pxPerDeg;
       const y = centerY - (position.altitudeDeg - view.centerAltitudeDeg) * pxPerDeg;
       if (x < -80 || x > width + 80 || y < -80 || y > height + 80) return;
@@ -485,7 +488,23 @@ function SkyCanvas({
       context.font = selected ? '700 13px system-ui, sans-serif' : '600 12px system-ui, sans-serif';
       context.fillText(target?.label ?? position.id, x, y - radius - 12);
     });
-  }, [debug, nightMode, onMetricsChange, positions, selectedTargetId, showAltitudeGuide, showAurora, stars, sunAltitudeDeg, sunPosition, view]);
+
+    if (showHostPointerCenter) {
+      context.save();
+      context.fillStyle = nightMode ? 'rgba(255, 66, 52, 0.94)' : 'rgba(220, 42, 34, 0.96)';
+      context.strokeStyle = nightMode ? 'rgba(255, 220, 210, 0.9)' : 'rgba(255, 238, 226, 0.96)';
+      context.lineWidth = 1.5;
+      context.beginPath();
+      context.moveTo(centerX, centerY - 9);
+      context.lineTo(centerX + 9, centerY);
+      context.lineTo(centerX, centerY + 9);
+      context.lineTo(centerX - 9, centerY);
+      context.closePath();
+      context.fill();
+      context.stroke();
+      context.restore();
+    }
+  }, [debug, nightMode, onMetricsChange, positions, selectedTargetId, showAltitudeGuide, showAurora, showHostPointerCenter, stars, sunAltitudeDeg, sunPosition, view]);
 
   function getPointerInfo() {
     const pointers = [...gestureRef.current.pointers.values()];
@@ -952,7 +971,7 @@ function App() {
     if (guestPassInput.trim() === GUEST_ACCESS_CODE) {
       writeSessionFlag(GUEST_UNLOCKED_KEY, true);
       writeSessionFlag(GUEST_REJECTED_KEY, false);
-      setGuestJoinGate({ status: 'none', sessionId });
+      setGuestJoinGate({ status: 'none', sessionId, error: null });
       setGuestPassInput('');
       if (sessionId) {
         joinGuestSession(sessionId);
@@ -961,9 +980,8 @@ function App() {
     }
 
     writeSessionFlag(GUEST_UNLOCKED_KEY, false);
-    writeSessionFlag(GUEST_REJECTED_KEY, true);
     setGuestPassInput('');
-    setGuestJoinGate({ status: 'rejected', sessionId });
+    setGuestJoinGate({ status: 'pass', sessionId, error: 'パスワードが違います' });
     setConnectionStatus('disconnected');
   }
 
@@ -1052,7 +1070,7 @@ function App() {
 
   useEffect(() => {
     if (guestJoinBlocked) {
-      setLocationStatus('参加PASSを確認してください');
+      setLocationStatus('メンテナンス認証を確認してください');
       return;
     }
 
@@ -1203,16 +1221,25 @@ function App() {
         } else {
           alphaFallbackOffsetRef.current = null;
         }
+        const horizonLikeAltitude = Math.abs(correctedAltitudeDeg) <= 10;
+        if (
+          horizonLikeAltitude &&
+          Math.abs(shortestAzimuthDelta(nextEstimatedAzimuthDeg, previous.azimuthDeg)) > 55
+        ) {
+          nextEstimatedAzimuthDeg = previous.azimuthDeg;
+        }
         const azimuthDeltaDeg = shortestAzimuthDelta(nextEstimatedAzimuthDeg, previous.azimuthDeg);
         // Keep heading responsive even at steep device angles. When iOS
         // webkitCompassHeading becomes sticky, the alpha fallback is offset to
         // the current view so source changes stay continuous.
-        const azimuthSmoothing = 0.24;
+        const androidLikeAzimuth = webkitHeading === null && !useAlphaFallback;
+        const steadyHorizonAzimuth = androidLikeAzimuth && horizonLikeAltitude;
+        const azimuthSmoothing = steadyHorizonAzimuth ? 0.12 : 0.24;
         const altitudeSmoothing = 0.24;
         const azimuthStep = limitedSensorStep(
           azimuthDeltaDeg,
           azimuthSmoothing,
-          18,
+          steadyHorizonAzimuth ? 6 : 18,
         );
         const altitudeStep = limitedSensorStep(correctedAltitudeDeg - previous.altitudeDeg, altitudeSmoothing, 12);
         const nextAzimuthDeg = normalizeAzimuth(
@@ -1308,6 +1335,7 @@ function App() {
         nightMode={nightMode}
         uiMode={uiMode}
         value={guestPassInput}
+        error={guestJoinGate.error}
         onChange={setGuestPassInput}
         onSubmit={submitGuestPass}
       />
@@ -1338,6 +1366,7 @@ function App() {
           showAurora={showAurora}
           showAltitudeGuide={showAltitudeGuide}
           sensorModeEnabled={sensorModeEnabled}
+          showHostPointerCenter={sessionRole === 'host' && shareMode === 'pointer'}
           debug={debug}
           onViewChange={setView}
           onInteractionStart={cancelViewAnimation}
@@ -1417,7 +1446,7 @@ function App() {
 
       {page !== 'sky' && (
         <div className={`sheet-layer ${sheetClosing ? 'closing' : ''}`} onClick={closeSheet}>
-          <section className="bottom-sheet" onClick={(event) => event.stopPropagation()}>
+          <section className={`bottom-sheet ${page}-sheet`} onClick={(event) => event.stopPropagation()}>
             <button type="button" className="sheet-close" onClick={closeSheet}>
               閉じる
             </button>
@@ -1511,30 +1540,33 @@ function GuestPassGate({
   nightMode,
   uiMode,
   value,
+  error,
   onChange,
   onSubmit,
 }: {
   nightMode: boolean;
   uiMode: UiMode;
   value: string;
+  error: string | null;
   onChange: (value: string) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
 }) {
   return (
     <main className={`app-shell gate-shell ${nightMode ? 'night-mode' : ''}`} data-ui-mode={uiMode}>
       <section className="guest-gate-card">
-        <h1>利用PASS</h1>
-        <p>SoravaのPASSを入力してください。</p>
+        <h1>Sorava</h1>
+        <p>メンテナンス</p>
         <form className="guest-pass-form" onSubmit={onSubmit}>
           <input
             type="password"
             inputMode="numeric"
             value={value}
             onChange={(event) => onChange(event.target.value.trim())}
-            placeholder="PASS"
+            placeholder="パスワード"
             autoComplete="off"
           />
-          <button type="submit">参加</button>
+          {error && <div className="guest-pass-error">{error}</div>}
+          <button type="submit">入る</button>
         </form>
       </section>
     </main>

@@ -2,6 +2,17 @@
 
 This file records implementation work and notable design changes so progress can be reviewed on GitHub.
 
+## 2026-07-06
+
+- Applied second club-test stabilization updates after confirming Host/Guest sharing worked with up to 11 participants.
+- Re-enabled the public maintenance authentication gate using the existing PASS flow and password `0629`.
+- Changed incorrect maintenance PASS handling to stay on the same screen with an inline error instead of locking the tab.
+- Changed the default display mode to B and changed the default sensor altitude inversion to ON based on test feedback.
+- Improved session stability by allowing multiple missed WebSocket heartbeats before termination and extending Host disconnect grace time.
+- Added safer Android-oriented sensor smoothing near the horizon to reduce sudden 360-degree heading spins.
+- Increased key UI text sizes across Sky, Targets, Session, Settings, and Bottom Navigation.
+- Kept recent field-test visual adjustments, including lower bottom sheets, old-Android button fallback styling, host pointer center marker, and below-horizon target visibility.
+
 ## 2026-06-26
 
 - Completed Phase1 baseline on `main`.

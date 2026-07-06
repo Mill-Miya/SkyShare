@@ -7,7 +7,9 @@ const MAX_ROOMS = Number(process.env.MAX_ROOMS ?? 80);
 const MAX_GUESTS_PER_ROOM = Number(process.env.MAX_GUESTS_PER_ROOM ?? 60);
 const ROOM_TTL_MS = Number(process.env.ROOM_TTL_MS ?? 6 * 60 * 60 * 1000);
 const CLEANUP_INTERVAL_MS = Number(process.env.CLEANUP_INTERVAL_MS ?? 5 * 60 * 1000);
-const HEARTBEAT_INTERVAL_MS = Number(process.env.HEARTBEAT_INTERVAL_MS ?? 30000);
+const HEARTBEAT_INTERVAL_MS = Number(process.env.HEARTBEAT_INTERVAL_MS ?? 25000);
+const HEARTBEAT_MISSES_LIMIT = Number(process.env.HEARTBEAT_MISSES_LIMIT ?? 3);
+const HOST_DISCONNECT_GRACE_MS = Number(process.env.HOST_DISCONNECT_GRACE_MS ?? 90000);
 const SESSION_CREATE_WINDOW_MS = Number(process.env.SESSION_CREATE_WINDOW_MS ?? 60000);
 const SESSION_CREATE_LIMIT = Number(process.env.SESSION_CREATE_LIMIT ?? 12);
 const POINTER_MIN_INTERVAL_MS = Number(process.env.POINTER_MIN_INTERVAL_MS ?? 45);
@@ -339,9 +341,11 @@ wss.on('connection', (socket) => {
   let role = null;
   let lastPointerUpdateAt = 0;
   socket.isAlive = true;
+  socket.missedHeartbeats = 0;
 
   socket.on('pong', () => {
     socket.isAlive = true;
+    socket.missedHeartbeats = 0;
   });
 
   socket.on('message', (rawMessage) => {
@@ -480,7 +484,7 @@ wss.on('connection', (socket) => {
         const currentRoom = rooms.get(joinedSessionId);
         if (!currentRoom || currentRoom.host) return;
         endSession(joinedSessionId, currentRoom, 'host_disconnected');
-      }, 30000);
+      }, HOST_DISCONNECT_GRACE_MS);
     }
     if (role === 'guest') {
       room.guests.delete(socket);
@@ -496,8 +500,13 @@ cleanupTimer.unref();
 const heartbeatTimer = setInterval(() => {
   wss.clients.forEach((socket) => {
     if (socket.isAlive === false) {
-      terminateSocket(socket);
-      return;
+      socket.missedHeartbeats = (socket.missedHeartbeats ?? 0) + 1;
+      if (socket.missedHeartbeats >= HEARTBEAT_MISSES_LIMIT) {
+        terminateSocket(socket);
+        return;
+      }
+    } else {
+      socket.missedHeartbeats = 0;
     }
     socket.isAlive = false;
     socket.ping();

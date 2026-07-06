@@ -28,13 +28,31 @@ input {
   font: inherit;
 }
 
+button {
+  -webkit-appearance: none;
+  appearance: none;
+  border: 1px solid rgba(244, 241, 223, 0.16);
+  color: #f4f1df;
+  background-color: rgba(244, 241, 223, 0.07);
+  background-image: none;
+  box-shadow: none;
+  text-shadow: none;
+}
+
+input:not([type="checkbox"]):not([type="radio"]) {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 .app-shell {
   position: relative;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   width: 100%;
   height: 100%;
+  min-height: 100vh;
   min-height: 100dvh;
+  padding: 12px;
   padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
   gap: 10px;
   background:
@@ -175,6 +193,13 @@ input {
 .guest-pass-form input {
   width: 100%;
   padding: 8px 10px;
+}
+
+.guest-pass-error {
+  color: #ffb0a4;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
 }
 
 .guest-pass-form button {
@@ -525,6 +550,7 @@ input {
   left: 0;
   right: 0;
   top: 0;
+  bottom: 68px;
   bottom: calc(56px + max(12px, env(safe-area-inset-bottom)));
   z-index: 20;
   display: flex;
@@ -543,8 +569,10 @@ input {
   grid-template-rows: auto minmax(0, 1fr);
   gap: 10px;
   width: 100%;
-  height: min(82dvh, calc(100dvh - 104px));
-  max-height: min(82dvh, calc(100dvh - 104px));
+  height: 72vh;
+  max-height: 72vh;
+  height: min(72dvh, calc(100dvh - 150px));
+  max-height: min(72dvh, calc(100dvh - 150px));
   padding: 10px;
   border: 1px solid rgba(244, 241, 223, 0.16);
   border-radius: 8px 8px 0 0;
@@ -552,6 +580,13 @@ input {
   box-shadow: 0 -14px 34px rgba(0, 0, 0, 0.36);
   overflow: hidden;
   animation: sheet-in 220ms ease-in-out;
+}
+
+.bottom-sheet.settings-sheet {
+  height: 62vh;
+  max-height: 62vh;
+  height: min(62dvh, calc(100dvh - 190px));
+  max-height: min(62dvh, calc(100dvh - 190px));
 }
 
 .sheet-layer.closing .bottom-sheet {
@@ -629,6 +664,7 @@ input {
   display: grid;
   align-content: start;
   gap: 6px;
+  padding-top: 14px;
 }
 
 .sky-brightness-note {
@@ -806,6 +842,7 @@ input {
   align-content: start;
   gap: 10px;
   min-height: 0;
+  padding-top: 28px;
   padding-bottom: calc(max(28px, env(safe-area-inset-bottom)) + 48px);
 }
 
@@ -848,6 +885,8 @@ input {
   border-radius: 8px;
   color: #f4f1df;
   background: rgba(244, 241, 223, 0.07);
+  background-color: rgba(244, 241, 223, 0.07);
+  background-image: none;
   font-size: 21px;
   font-weight: 900;
 }
@@ -855,6 +894,7 @@ input {
 .session-choice-button.primary-choice {
   border-color: rgba(255, 238, 170, 0.42);
   background: rgba(255, 238, 170, 0.14);
+  background-color: rgba(255, 238, 170, 0.14);
 }
 
 .night-mode .session-choice-button {
@@ -1349,6 +1389,120 @@ input {
   background: rgba(128, 0, 0, 0.32);
 }
 
+/* Fallback for older Android browsers that keep native white button styling. */
+.app-shell button,
+.app-shell .session-choice-button,
+.app-shell .bottom-nav button,
+.app-shell .top-bar button,
+.app-shell .sheet-close,
+.app-shell .theme-switch button,
+.app-shell .session-methods button,
+.app-shell .share-mode-buttons button,
+.app-shell .session-card button,
+.app-shell .sensor-follow-button,
+.app-shell .secondary-action,
+.app-shell .primary-action {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  border-color: rgba(244, 241, 223, 0.18) !important;
+  color: #f4f1df !important;
+  background-color: rgba(18, 24, 26, 0.86) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.app-shell .session-choice-button.primary-choice,
+.app-shell .bottom-nav button.active,
+.app-shell .theme-switch button.active,
+.app-shell .session-methods button.active,
+.app-shell .share-mode-buttons button.active {
+  border-color: rgba(255, 238, 170, 0.46) !important;
+  color: #fff4b8 !important;
+  background-color: rgba(58, 56, 38, 0.92) !important;
+}
+
+.app-shell.night-mode button,
+.app-shell.night-mode .session-choice-button,
+.app-shell.night-mode .bottom-nav button,
+.app-shell.night-mode .top-bar button,
+.app-shell.night-mode .sheet-close,
+.app-shell.night-mode .theme-switch button,
+.app-shell.night-mode .session-methods button,
+.app-shell.night-mode .share-mode-buttons button,
+.app-shell.night-mode .session-card button,
+.app-shell.night-mode .sensor-follow-button,
+.app-shell.night-mode .secondary-action,
+.app-shell.night-mode .primary-action {
+  border-color: rgba(255, 88, 68, 0.28) !important;
+  color: #ff9a8d !important;
+  background-color: rgba(38, 8, 6, 0.9) !important;
+}
+
+.top-bar h1 {
+  font-size: 24px;
+}
+
+.top-bar p,
+.sky-brightness-note,
+.session-card p,
+.session-note,
+.session-list,
+.settings-note,
+.toggle-row small,
+.setting-row small,
+.target-row .target-meta {
+  font-size: 13px;
+}
+
+.target-row strong,
+.session-facts dd,
+.connection-pill,
+.theme-switch button,
+.share-mode-buttons button,
+.session-methods button,
+.session-input-row input,
+.session-input-row button,
+.guest-pass-form input,
+.guest-pass-form button {
+  font-size: 15px;
+}
+
+.target-status,
+.bottom-nav button,
+.sheet-close,
+.sensor-follow-button,
+.view-readout,
+.shared-badge,
+.guidance-meta {
+  font-size: 12px;
+}
+
+.session-choice h2 {
+  font-size: 27px;
+}
+
+.session-choice p {
+  font-size: 17px;
+}
+
+.session-choice-button {
+  font-size: 23px;
+}
+
+.guidance-target,
+.target-acquired,
+.altitude-warning,
+.guidance-lines {
+  font-size: 14px;
+}
+
+.toggle-row strong,
+.setting-row strong,
+.session-card h2 {
+  font-size: 19px;
+}
+
 @media (min-width: 700px) {
   .app-shell {
     max-width: 720px;
@@ -1358,8 +1512,11 @@ input {
 
 @media (max-width: 430px) {
   .app-shell {
+    height: 100vh;
+    min-height: 100vh;
     height: 100dvh;
     min-height: 100dvh;
+    padding: 8px;
     padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom));
     gap: 8px;
     overflow: hidden;
@@ -1370,11 +1527,11 @@ input {
   }
 
   .top-bar h1 {
-    font-size: 18px;
+    font-size: 20px;
   }
 
   .top-bar p {
-    font-size: 11px;
+    font-size: 12px;
     line-height: 1.25;
   }
 
@@ -1382,7 +1539,7 @@ input {
     min-width: 52px;
     min-height: 36px;
     padding: 4px 8px;
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .sensor-follow-button {
@@ -1391,7 +1548,7 @@ input {
     min-width: 52px;
     min-height: 32px;
     padding: 5px 8px;
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .sensor-notice {
@@ -1399,14 +1556,14 @@ input {
     right: 8px;
     max-width: min(200px, calc(100% - 16px));
     padding: 6px 8px;
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .view-readout {
     left: 8px;
     bottom: 8px;
     gap: 4px;
-    font-size: 10px;
+    font-size: 11px;
   }
 
   .view-readout span {
@@ -1426,12 +1583,12 @@ input {
   .guidance-target,
   .target-acquired,
   .altitude-warning {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .shared-badge,
   .guidance-meta {
-    font-size: 10px;
+    font-size: 11px;
   }
 
   .guidance-compass {
@@ -1457,25 +1614,35 @@ input {
     flex-wrap: wrap;
     justify-content: center;
     gap: 5px 7px;
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .sheet-layer {
+    bottom: 60px;
     bottom: calc(52px + max(8px, env(safe-area-inset-bottom)));
     padding: 0 8px;
   }
 
   .bottom-sheet {
-    height: min(88dvh, calc(100dvh - 82px));
-    max-height: min(88dvh, calc(100dvh - 82px));
+    height: 68vh;
+    max-height: 68vh;
+    height: min(68dvh, calc(100dvh - 150px));
+    max-height: min(68dvh, calc(100dvh - 150px));
     padding: 8px;
     gap: 8px;
+  }
+
+  .bottom-sheet.settings-sheet {
+    height: 58vh;
+    max-height: 58vh;
+    height: min(58dvh, calc(100dvh - 190px));
+    max-height: min(58dvh, calc(100dvh - 190px));
   }
 
   .sheet-close {
     min-height: 32px;
     padding: 4px 8px;
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .bottom-sheet .page-panel {
@@ -1487,6 +1654,14 @@ input {
   .session-page {
     gap: 8px;
     padding-bottom: calc(104px + env(safe-area-inset-bottom));
+  }
+
+  .targets-page {
+    padding-top: 18px;
+  }
+
+  .settings-page {
+    padding-top: 34px;
   }
 
   .admin-panel {
@@ -1531,7 +1706,7 @@ input {
   .target-row strong {
     grid-column: 2;
     grid-row: 1;
-    font-size: 14px;
+    font-size: 16px;
     line-height: 1.25;
   }
 
@@ -1539,7 +1714,7 @@ input {
   .target-row .target-meta {
     grid-column: 2;
     grid-row: 2;
-    font-size: 11px;
+    font-size: 12px;
     line-height: 1.35;
   }
 
@@ -1547,7 +1722,7 @@ input {
     grid-column: 2;
     grid-row: 3;
     justify-self: start;
-    font-size: 11px;
+    font-size: 12px;
     text-align: left;
     white-space: normal;
   }
@@ -1561,7 +1736,7 @@ input {
   .target-row.clear strong {
     grid-column: 1;
     grid-row: 1;
-    font-size: 14px;
+    font-size: 16px;
     text-align: center;
   }
 
@@ -1573,16 +1748,16 @@ input {
   }
 
   .session-choice h2 {
-    font-size: 20px;
+    font-size: 22px;
   }
 
   .session-choice p {
-    font-size: 13px;
+    font-size: 15px;
   }
 
   .session-choice-button {
     min-height: 58px;
-    font-size: 18px;
+    font-size: 20px;
   }
 
   .session-card {
@@ -1611,7 +1786,7 @@ input {
   .bottom-nav button {
     min-height: 42px;
     padding: 5px 6px;
-    font-size: 11px;
+    font-size: 12px;
   }
 }
 
