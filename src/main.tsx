@@ -183,6 +183,7 @@ type SensorProbeState = {
   gamma: number | null;
   webkitHeading: number | null;
   azimuthSource: 'webkit' | 'alpha' | null;
+  alphaDirection: 1 | -1;
   absolute: boolean | null;
   estimatedAzimuthDeg: number | null;
   rawEstimatedAltitudeDeg: number | null;
@@ -194,6 +195,7 @@ type EstimatedSensorView = {
   estimatedAzimuthDeg: number | null;
   estimatedAltitudeDeg: number | null;
   webkitHeading: number | null;
+  alphaDirectAzimuthDeg: number | null;
   alphaAzimuthDeg: number | null;
   useAlphaFallback: boolean;
   azimuthSource: SensorProbeState['azimuthSource'];
@@ -219,6 +221,7 @@ function initialSensorProbe(): SensorProbeState {
     gamma: null,
     webkitHeading: null,
     azimuthSource: null,
+    alphaDirection: -1,
     absolute: null,
     estimatedAzimuthDeg: null,
     rawEstimatedAltitudeDeg: null,
@@ -231,16 +234,16 @@ function estimateSensorView(event: DeviceOrientationEvent) {
   const alpha = typeof event.alpha === 'number' ? event.alpha : null;
   const beta = typeof event.beta === 'number' ? event.beta : null;
   const webkitHeading = (event as DeviceOrientationEvent & { webkitCompassHeading?: number }).webkitCompassHeading;
-  const alphaAzimuthDeg = alpha !== null ? normalizeAzimuth(360 - alpha) : null;
-  const steepAlphaAzimuthDeg = alpha !== null ? normalizeAzimuth(alpha) : null;
+  const alphaDirectAzimuthDeg = alpha !== null ? normalizeAzimuth(alpha) : null;
+  const alphaInverseAzimuthDeg = alpha !== null ? normalizeAzimuth(360 - alpha) : null;
   const webkitAzimuthDeg = typeof webkitHeading === 'number' ? normalizeAzimuth(webkitHeading) : null;
   // On iOS, webkitCompassHeading can become sticky when beta passes steep
-  // upward angles. In that range, raw alpha remains movable, and using alpha
-  // directly keeps the fallback rotation direction from being inverted.
-  const preferAlphaAtSteepAngle = beta !== null && Math.abs(beta) > 120 && steepAlphaAzimuthDeg !== null;
+  // upward angles. In that range, alpha remains movable, but its sign is
+  // resolved in the event handler from pre-fallback heading samples.
+  const preferAlphaAtSteepAngle = beta !== null && Math.abs(beta) > 120 && alphaDirectAzimuthDeg !== null;
   const estimatedAzimuthDeg = preferAlphaAtSteepAngle
-    ? steepAlphaAzimuthDeg
-    : webkitAzimuthDeg ?? alphaAzimuthDeg;
+    ? alphaDirectAzimuthDeg
+    : webkitAzimuthDeg ?? alphaInverseAzimuthDeg;
   const azimuthSource: SensorProbeState['azimuthSource'] = estimatedAzimuthDeg === null
     ? null
     : preferAlphaAtSteepAngle || webkitAzimuthDeg === null
@@ -254,7 +257,8 @@ function estimateSensorView(event: DeviceOrientationEvent) {
     estimatedAzimuthDeg,
     estimatedAltitudeDeg,
     webkitHeading: webkitAzimuthDeg,
-    alphaAzimuthDeg: preferAlphaAtSteepAngle ? steepAlphaAzimuthDeg : alphaAzimuthDeg,
+    alphaDirectAzimuthDeg,
+    alphaAzimuthDeg: preferAlphaAtSteepAngle ? alphaDirectAzimuthDeg : alphaInverseAzimuthDeg,
     useAlphaFallback: preferAlphaAtSteepAngle,
     azimuthSource,
   } satisfies EstimatedSensorView;
@@ -609,6 +613,8 @@ function App() {
   const lastPointerSendRef = useRef<{ azimuthDeg: number; altitudeDeg: number; time: number } | null>(null);
   const smoothedSensorViewRef = useRef<{ azimuthDeg: number; altitudeDeg: number } | null>(null);
   const alphaFallbackOffsetRef = useRef<number | null>(null);
+  const alphaFallbackDirectionRef = useRef<1 | -1>(-1);
+  const lastAzimuthLearningSampleRef = useRef<{ webkitDeg: number; alphaDirectDeg: number } | null>(null);
   const lastSensorEventAtRef = useRef(0);
   const lastAbsoluteSensorEventAtRef = useRef(0);
 
@@ -632,6 +638,7 @@ function App() {
     }
     smoothedSensorViewRef.current = null;
     alphaFallbackOffsetRef.current = null;
+    lastAzimuthLearningSampleRef.current = null;
   }, [invertSensorAltitude]);
 
   function clearSheetCloseTimer() {
@@ -691,6 +698,7 @@ function App() {
       setSensorNotice(null);
       smoothedSensorViewRef.current = null;
       alphaFallbackOffsetRef.current = null;
+      lastAzimuthLearningSampleRef.current = null;
       return;
     }
 
@@ -713,6 +721,7 @@ function App() {
     cancelViewAnimation();
     smoothedSensorViewRef.current = null;
     alphaFallbackOffsetRef.current = null;
+    lastAzimuthLearningSampleRef.current = null;
     setSensorModeEnabled(true);
     setSensorNotice(null);
   }
@@ -1083,6 +1092,7 @@ function App() {
     if (!sensorModeEnabled) {
       smoothedSensorViewRef.current = null;
       alphaFallbackOffsetRef.current = null;
+      lastAzimuthLearningSampleRef.current = null;
       return;
     }
     cancelViewAnimation();
@@ -1115,6 +1125,7 @@ function App() {
         estimatedAzimuthDeg,
         estimatedAltitudeDeg: rawEstimatedAltitudeDeg,
         webkitHeading,
+        alphaDirectAzimuthDeg,
         alphaAzimuthDeg,
         useAlphaFallback,
         azimuthSource,
@@ -1126,6 +1137,19 @@ function App() {
       const alpha = typeof event.alpha === 'number' ? event.alpha : null;
       const beta = typeof event.beta === 'number' ? event.beta : null;
       const gamma = typeof event.gamma === 'number' ? event.gamma : null;
+      if (!useAlphaFallback && webkitHeading !== null && alphaDirectAzimuthDeg !== null) {
+        const last = lastAzimuthLearningSampleRef.current;
+        if (last) {
+          const webkitDelta = shortestAzimuthDelta(webkitHeading, last.webkitDeg);
+          const alphaDirectDelta = shortestAzimuthDelta(alphaDirectAzimuthDeg, last.alphaDirectDeg);
+          if (Math.abs(webkitDelta) >= 0.35 && Math.abs(alphaDirectDelta) >= 0.35) {
+            const directError = Math.abs(webkitDelta - alphaDirectDelta);
+            const inverseError = Math.abs(webkitDelta + alphaDirectDelta);
+            alphaFallbackDirectionRef.current = directError <= inverseError ? 1 : -1;
+          }
+        }
+        lastAzimuthLearningSampleRef.current = { webkitDeg: webkitHeading, alphaDirectDeg: alphaDirectAzimuthDeg };
+      }
 
       setSensorProbe({
         supported: true,
@@ -1136,6 +1160,7 @@ function App() {
         gamma,
         webkitHeading,
         azimuthSource,
+        alphaDirection: alphaFallbackDirectionRef.current,
         absolute: typeof event.absolute === 'boolean' ? event.absolute : null,
         estimatedAzimuthDeg,
         rawEstimatedAltitudeDeg,
@@ -1155,10 +1180,13 @@ function App() {
         };
         let nextEstimatedAzimuthDeg = estimatedAzimuthDeg;
         if (useAlphaFallback && alphaAzimuthDeg !== null) {
+          const signedAlphaAzimuthDeg = normalizeAzimuth(
+            alphaFallbackDirectionRef.current === 1 ? alphaAzimuthDeg : 360 - alphaAzimuthDeg,
+          );
           if (alphaFallbackOffsetRef.current === null) {
-            alphaFallbackOffsetRef.current = shortestAzimuthDelta(previous.azimuthDeg, alphaAzimuthDeg);
+            alphaFallbackOffsetRef.current = shortestAzimuthDelta(previous.azimuthDeg, signedAlphaAzimuthDeg);
           }
-          nextEstimatedAzimuthDeg = normalizeAzimuth(alphaAzimuthDeg + alphaFallbackOffsetRef.current);
+          nextEstimatedAzimuthDeg = normalizeAzimuth(signedAlphaAzimuthDeg + alphaFallbackOffsetRef.current);
         } else {
           alphaFallbackOffsetRef.current = null;
         }
@@ -2169,6 +2197,10 @@ function SettingsPage({
             <div>
               <span>方位元</span>
               <strong>{sensorProbe.azimuthSource ?? '--'}</strong>
+            </div>
+            <div>
+              <span>alpha方向</span>
+              <strong>{sensorProbe.alphaDirection === 1 ? '+' : '-'}</strong>
             </div>
             <div>
               <span>absolute</span>

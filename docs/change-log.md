@@ -123,6 +123,7 @@ This file records implementation work and notable design changes so progress can
 - Added an iOS steep-angle Sensor Mode fallback that switches azimuth from sticky `webkitCompassHeading` to `alpha` above beta 120 degrees, with admin diagnostics for heading source.
 - Added continuity offset calibration for the steep-angle alpha fallback so switching away from `webkitCompassHeading` does not cause a 180-degree azimuth jump.
 - Changed the steep-angle iOS alpha fallback to use direct alpha direction with continuity offset, avoiding inverted heading movement after the fallback activates.
+- Added pre-fallback alpha direction learning against `webkitCompassHeading`, so steep-angle Sensor Mode can choose direct or inverted alpha movement per device instead of hard-coding one sign.
 
 ## Ongoing Rule
 
