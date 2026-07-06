@@ -159,7 +159,7 @@ VITE_GUEST_ACCESS_CODE=0629
 
 `SORAVA_WS_URL` は以下のように `/ws` なしでも動きますが、明示的に `/ws` まで入れることを推奨します。
 
-`VITE_GUEST_ACCESS_CODE` は部内テスト用の簡易サイト利用PASSです。GitHub Pagesでは未設定でも部内テスト用の既定値 `0629` が使われます。ローカルや予備Frontendでは未設定の場合、従来通りPASSなしで利用できます。`/join/{sessionId}` では、正しいPASS入力後にGuest参加へ進みます。
+`VITE_GUEST_ACCESS_CODE` は部内テスト用の簡易サイト利用PASSです。現在は公開確認のため、フロント側の `GUEST_ACCESS_CODE_ENABLED` を `false` にして一時停止しています。再度PASSを使う場合は `src/main.tsx` の `GUEST_ACCESS_CODE_ENABLED` を `true` に戻してください。`/join/{sessionId}` では、PASS有効時のみ正しいPASS入力後にGuest参加へ進みます。
 
 ```text
 wss://<render-service-name>.onrender.com

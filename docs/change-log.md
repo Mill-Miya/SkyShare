@@ -124,6 +124,7 @@ This file records implementation work and notable design changes so progress can
 - Added continuity offset calibration for the steep-angle alpha fallback so switching away from `webkitCompassHeading` does not cause a 180-degree azimuth jump.
 - Changed the steep-angle iOS alpha fallback to use direct alpha direction with continuity offset, avoiding inverted heading movement after the fallback activates.
 - Added pre-fallback alpha direction learning against `webkitCompassHeading`, so steep-angle Sensor Mode can choose direct or inverted alpha movement per device instead of hard-coding one sign.
+- Temporarily disabled the site-wide Guest PASS gate while keeping the PASS code path in place for later re-enablement.
 
 ## Ongoing Rule
 
