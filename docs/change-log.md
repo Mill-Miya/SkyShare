@@ -129,6 +129,7 @@ This file records implementation work and notable design changes so progress can
 - Made pointer sharing visible like target guidance by showing a `Host方向` guidance panel for Guests and rendering the Host direction as a red diamond marker on the Sky.
 - Fixed pointer sharing visibility so `Host方向` guidance appears for both Host and Guest, clears any suppressed guidance state, and is not hidden behind the Host's selected target guidance.
 - Ensured Guests also clear suppressed guidance and target state when receiving pointer share state or updates, so the Host direction panel and red diamond marker can appear after reconnects or previous target animations.
+- Changed the Host direction red diamond marker to disappear when the shared direction is outside the current Sky view instead of clamping to the screen edge.
 
 ## Ongoing Rule
 

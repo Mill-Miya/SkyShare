@@ -1642,14 +1642,14 @@ function PointerOverlay({
   const deltaAltitude = pointer.altitudeDeg - view.centerAltitudeDeg;
   const rawX = centerX + deltaAzimuth * metrics.zoom;
   const rawY = centerY - deltaAltitude * metrics.zoom;
-  const x = clamp(rawX, 22, metrics.width - 22);
-  const y = clamp(rawY, 22, metrics.height - 22);
-  const offscreen = rawX !== x || rawY !== y;
+  const inView = rawX >= 0 && rawX <= metrics.width && rawY >= 0 && rawY <= metrics.height;
+
+  if (!inView) return null;
 
   return (
     <div
-      className={`pointer-marker ${offscreen ? 'edge' : ''}`}
-      style={{ transform: `translate(${x}px, ${y}px)` }}
+      className="pointer-marker"
+      style={{ transform: `translate(${rawX}px, ${rawY}px)` }}
       aria-label="方向案内"
     >
       <span />
