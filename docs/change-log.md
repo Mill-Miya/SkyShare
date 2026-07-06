@@ -125,6 +125,7 @@ This file records implementation work and notable design changes so progress can
 - Changed the steep-angle iOS alpha fallback to use direct alpha direction with continuity offset, avoiding inverted heading movement after the fallback activates.
 - Added pre-fallback alpha direction learning against `webkitCompassHeading`, so steep-angle Sensor Mode can choose direct or inverted alpha movement per device instead of hard-coding one sign.
 - Temporarily disabled the site-wide Guest PASS gate while keeping the PASS code path in place for later re-enablement.
+- Made A display mode the default for first-time visitors and hid the `捕捉しました` guidance text in A mode while keeping the acquired symbol.
 
 ## Ongoing Rule
 

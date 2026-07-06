@@ -139,9 +139,9 @@ function readStoredUiMode(): UiMode {
     const storedValue = window.localStorage.getItem(UI_THEME_STORAGE_KEY);
     if (storedValue === 'simple' || storedValue === 'field') return 'simple';
     if (storedValue === 'standard' || storedValue === 'classic') return 'standard';
-    return 'standard';
+    return 'simple';
   } catch {
-    return 'standard';
+    return 'simple';
   }
 }
 
@@ -1364,6 +1364,7 @@ function App() {
             selectedPosition={selectedPosition}
             selectedStatus={selectedStatus}
             nightMode={nightMode}
+            uiMode={uiMode}
             sharedByHost={sessionRole === 'guest' && sharedTargetId === selectedPosition.id}
           />
         )}
@@ -1520,12 +1521,14 @@ function GuidanceOverlay({
   selectedPosition,
   selectedStatus,
   nightMode,
+  uiMode,
   sharedByHost,
 }: {
   guidance: GuidanceState;
   selectedPosition: TargetPosition;
   selectedStatus: ReturnType<typeof getAltitudeStatus> | null;
   nightMode: boolean;
+  uiMode: UiMode;
   sharedByHost: boolean;
 }) {
   const target = getTargetDefinition(selectedPosition.id);
@@ -1584,7 +1587,7 @@ function GuidanceOverlay({
       <div className="guidance-meta">
         方位 {Math.round(selectedPosition.azimuthDeg)}° / 高度 {Math.round(selectedPosition.altitudeDeg)}°
       </div>
-      {guidance.acquired && <div className="target-acquired">捕捉しました</div>}
+      {guidance.acquired && uiMode !== 'simple' && <div className="target-acquired">捕捉しました</div>}
       {selectedStatus !== 'visible' && <div className={`altitude-warning ${selectedStatus}`}>{statusLabel}</div>}
     </div>
   );
