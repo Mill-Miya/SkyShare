@@ -2392,6 +2392,18 @@ function SettingsPage({
 
       <label className="toggle-row">
         <span>
+          <strong>上下反転</strong>
+          <small>追従時に上向き/下向きが逆ならON</small>
+        </span>
+        <input
+          type="checkbox"
+          checked={invertSensorAltitude}
+          onChange={(event) => onInvertSensorAltitudeChange(event.target.checked)}
+        />
+      </label>
+
+      <label className="toggle-row">
+        <span>
           <strong>背景演出</strong>
           <small>空の雰囲気を少し残します</small>
         </span>
@@ -2401,24 +2413,11 @@ function SettingsPage({
       <label className="toggle-row">
         <span>
           <strong>ベータ版を使用</strong>
-          <small>未参加時だけSkyに時刻操作を表示します</small>
         </span>
         <input
           type="checkbox"
           checked={betaFeaturesEnabled}
           onChange={(event) => onBetaFeaturesEnabledChange(event.target.checked)}
-        />
-      </label>
-
-      <label className="toggle-row">
-        <span>
-          <strong>上下反転</strong>
-          <small>追従時に上向き/下向きが逆ならON</small>
-        </span>
-        <input
-          type="checkbox"
-          checked={invertSensorAltitude}
-          onChange={(event) => onInvertSensorAltitudeChange(event.target.checked)}
         />
       </label>
 
