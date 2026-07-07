@@ -1633,9 +1633,9 @@ input:not([type="checkbox"]):not([type="radio"]) {
     min-height: 100vh;
     height: 100dvh;
     min-height: 100dvh;
-    padding: 8px;
-    padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom));
-    gap: 8px;
+    padding: 6px;
+    padding: max(6px, env(safe-area-inset-top)) 6px max(6px, env(safe-area-inset-bottom));
+    gap: 6px;
     overflow: hidden;
   }
 
@@ -1644,19 +1644,19 @@ input:not([type="checkbox"]):not([type="radio"]) {
   }
 
   .top-bar h1 {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .top-bar p {
-    font-size: 12px;
+    font-size: 11px;
     line-height: 1.25;
   }
 
   .top-bar button {
-    min-width: 52px;
-    min-height: 36px;
-    padding: 4px 8px;
-    font-size: 13px;
+    min-width: 48px;
+    min-height: 32px;
+    padding: 3px 7px;
+    font-size: 12px;
   }
 
   .sensor-follow-button {
@@ -1718,19 +1718,19 @@ input:not([type="checkbox"]):not([type="radio"]) {
   }
 
   .guidance-panel {
-    bottom: 10px;
-    width: min(250px, calc(100% - 20px));
+    bottom: 8px;
+    width: min(232px, calc(100% - 16px));
     min-width: 0;
     min-height: auto;
     max-height: none;
-    padding: 8px 10px;
+    padding: 7px 9px;
     gap: 2px;
   }
 
   .guidance-target,
   .target-acquired,
   .altitude-warning {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .shared-badge,
@@ -1739,8 +1739,8 @@ input:not([type="checkbox"]):not([type="radio"]) {
   }
 
   .guidance-compass {
-    width: 56px;
-    height: 56px;
+    width: 52px;
+    height: 52px;
   }
 
   .guidance-compass::before {
@@ -1760,55 +1760,55 @@ input:not([type="checkbox"]):not([type="radio"]) {
   .guidance-lines {
     flex-wrap: wrap;
     justify-content: center;
-    gap: 5px 7px;
-    font-size: 13px;
+    gap: 4px 6px;
+    font-size: 12px;
   }
 
   .sheet-layer {
-    bottom: 60px;
-    bottom: calc(52px + max(8px, env(safe-area-inset-bottom)));
-    padding: 0 8px;
+    bottom: 54px;
+    bottom: calc(48px + max(6px, env(safe-area-inset-bottom)));
+    padding: 0 6px;
   }
 
   .bottom-sheet {
-    height: 68vh;
-    max-height: 68vh;
-    height: min(68dvh, calc(100dvh - 150px));
-    max-height: min(68dvh, calc(100dvh - 150px));
-    padding: 8px;
-    gap: 8px;
+    height: 74vh;
+    max-height: 74vh;
+    height: min(74dvh, calc(100dvh - 118px));
+    max-height: min(74dvh, calc(100dvh - 118px));
+    padding: 7px;
+    gap: 7px;
   }
 
   .bottom-sheet.settings-sheet {
-    height: 58vh;
-    max-height: 58vh;
-    height: min(58dvh, calc(100dvh - 190px));
-    max-height: min(58dvh, calc(100dvh - 190px));
+    height: 74vh;
+    max-height: 74vh;
+    height: min(74dvh, calc(100dvh - 118px));
+    max-height: min(74dvh, calc(100dvh - 118px));
   }
 
   .sheet-close {
-    min-height: 32px;
-    padding: 4px 8px;
-    font-size: 13px;
+    min-height: 30px;
+    padding: 3px 7px;
+    font-size: 12px;
   }
 
   .bottom-sheet .page-panel {
-    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+    padding-bottom: calc(58px + env(safe-area-inset-bottom));
   }
 
   .targets-page,
   .settings-page,
   .session-page {
-    gap: 8px;
-    padding-bottom: calc(104px + env(safe-area-inset-bottom));
+    gap: 6px;
+    padding-bottom: calc(70px + env(safe-area-inset-bottom));
   }
 
   .targets-page {
-    padding-top: 18px;
+    padding-top: 8px;
   }
 
   .settings-page {
-    padding-top: 34px;
+    padding-top: 8px;
   }
 
   .admin-panel {
@@ -1825,16 +1825,16 @@ input:not([type="checkbox"]):not([type="radio"]) {
   }
 
   .target-category-strip {
-    gap: 6px;
-    min-height: 40px;
-    margin-bottom: 12px;
-    padding-bottom: 10px;
+    gap: 5px;
+    min-height: 34px;
+    margin-bottom: 8px;
+    padding-bottom: 7px;
   }
 
   .target-category-strip button {
-    min-height: 30px;
-    padding: 5px 9px;
-    font-size: 11px;
+    min-height: 28px;
+    padding: 4px 8px;
+    font-size: 10px;
   }
 
   .target-row {
@@ -1842,7 +1842,7 @@ input:not([type="checkbox"]):not([type="radio"]) {
     grid-template-rows: auto auto auto;
     gap: 3px 8px;
     min-height: auto;
-    padding: 9px 2px;
+    padding: 7px 2px;
   }
 
   .target-color {
@@ -1853,7 +1853,7 @@ input:not([type="checkbox"]):not([type="radio"]) {
   .target-row strong {
     grid-column: 2;
     grid-row: 1;
-    font-size: 16px;
+    font-size: 14px;
     line-height: 1.25;
   }
 
@@ -1861,7 +1861,7 @@ input:not([type="checkbox"]):not([type="radio"]) {
   .target-row .target-meta {
     grid-column: 2;
     grid-row: 2;
-    font-size: 12px;
+    font-size: 11px;
     line-height: 1.35;
   }
 
@@ -1869,42 +1869,42 @@ input:not([type="checkbox"]):not([type="radio"]) {
     grid-column: 2;
     grid-row: 3;
     justify-self: start;
-    font-size: 12px;
+    font-size: 11px;
     text-align: left;
     white-space: normal;
   }
 
   .target-row.clear {
-    min-height: 42px;
-    margin: 2px 0 12px;
-    padding: 9px 8px;
+    min-height: 36px;
+    margin: 1px 0 8px;
+    padding: 7px 8px;
   }
 
   .target-row.clear strong {
     grid-column: 1;
     grid-row: 1;
-    font-size: 16px;
+    font-size: 14px;
     text-align: center;
   }
 
   .session-choice {
     align-content: start;
-    gap: 10px;
+    gap: 8px;
     min-height: auto;
-    padding: 8px 0;
+    padding: 6px 0;
   }
 
   .session-choice h2 {
-    font-size: 22px;
+    font-size: 20px;
   }
 
   .session-choice p {
-    font-size: 15px;
+    font-size: 13px;
   }
 
   .session-choice-button {
-    min-height: 58px;
-    font-size: 20px;
+    min-height: 50px;
+    font-size: 17px;
   }
 
   .session-card {
@@ -1926,14 +1926,14 @@ input:not([type="checkbox"]):not([type="radio"]) {
   }
 
   .bottom-nav {
-    gap: 6px;
-    padding-top: 6px;
+    gap: 5px;
+    padding-top: 4px;
   }
 
   .bottom-nav button {
-    min-height: 42px;
-    padding: 5px 6px;
-    font-size: 12px;
+    min-height: 38px;
+    padding: 4px 5px;
+    font-size: 11px;
   }
 }
 
