@@ -1788,7 +1788,7 @@ function GuestPassGate({
   return (
     <main className={`app-shell gate-shell ${nightMode ? 'night-mode' : ''}`} data-ui-mode={uiMode}>
       <section className="guest-gate-card">
-        <h1>Sorava</h1>
+        <h1>Sorava/SkyShare</h1>
         <p>メンテナンス中</p>
         <form className="guest-pass-form" onSubmit={onSubmit}>
           <input
