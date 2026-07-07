@@ -65,7 +65,7 @@ const GUEST_ACCESS_CODE_ENABLED = true;
 const DEFAULT_PUBLIC_GUEST_ACCESS_CODE = '0629';
 const CONFIGURED_GUEST_ACCESS_CODE = import.meta.env.VITE_GUEST_ACCESS_CODE?.trim() ?? '';
 const GUEST_ACCESS_CODE = GUEST_ACCESS_CODE_ENABLED
-  ? CONFIGURED_GUEST_ACCESS_CODE || (isGitHubPagesHost() ? DEFAULT_PUBLIC_GUEST_ACCESS_CODE : '')
+  ? CONFIGURED_GUEST_ACCESS_CODE || DEFAULT_PUBLIC_GUEST_ACCESS_CODE
   : '';
 const MAINTENANCE_UNLOCKED_KEY = 'sorava_maintenance_unlocked_v2';
 
@@ -173,10 +173,12 @@ function getInitialGuestJoinGate(): GuestJoinGateState {
 }
 
 type SensorPermissionState = 'unsupported' | 'prompt' | 'granted' | 'denied' | 'error';
+type SensorProfile = 'detecting' | 'ios' | 'android_stable' | 'android_unstable' | 'manual_recommended';
 
 type SensorProbeState = {
   supported: boolean;
   permissionState: SensorPermissionState;
+  sensorProfile: SensorProfile;
   eventType: 'deviceorientation' | 'deviceorientationabsolute' | null;
   alpha: number | null;
   beta: number | null;
@@ -189,6 +191,14 @@ type SensorProbeState = {
   rawEstimatedAltitudeDeg: number | null;
   estimatedAltitudeDeg: number | null;
   finalEstimatedAltitudeDeg: number | null;
+};
+
+type SensorProfileStats = {
+  profile: SensorProfile;
+  samples: number;
+  largeJumpCount: number;
+  jitterScore: number;
+  lastAzimuthDeg: number | null;
 };
 
 type EstimatedSensorView = {
@@ -215,6 +225,7 @@ function initialSensorProbe(): SensorProbeState {
   return {
     supported,
     permissionState: !supported ? 'unsupported' : canRequestDeviceOrientationPermission() ? 'prompt' : 'granted',
+    sensorProfile: 'detecting',
     eventType: null,
     alpha: null,
     beta: null,
@@ -228,6 +239,31 @@ function initialSensorProbe(): SensorProbeState {
     estimatedAltitudeDeg: null,
     finalEstimatedAltitudeDeg: null,
   };
+}
+
+function initialSensorProfileStats(): SensorProfileStats {
+  return {
+    profile: 'detecting',
+    samples: 0,
+    largeJumpCount: 0,
+    jitterScore: 0,
+    lastAzimuthDeg: null,
+  };
+}
+
+function getSensorProfileLabel(profile: SensorProfile) {
+  switch (profile) {
+    case 'ios':
+      return 'iOS';
+    case 'android_stable':
+      return 'Android安定';
+    case 'android_unstable':
+      return 'Android補正';
+    case 'manual_recommended':
+      return '手動推奨';
+    case 'detecting':
+      return '判定中';
+  }
 }
 
 function estimateSensorView(event: DeviceOrientationEvent) {
@@ -634,6 +670,7 @@ function App() {
   const alphaFallbackOffsetRef = useRef<number | null>(null);
   const alphaFallbackDirectionRef = useRef<1 | -1>(-1);
   const lastAzimuthLearningSampleRef = useRef<{ webkitDeg: number; alphaDirectDeg: number } | null>(null);
+  const sensorProfileStatsRef = useRef<SensorProfileStats>(initialSensorProfileStats());
   const lastSensorEventAtRef = useRef(0);
   const lastAbsoluteSensorEventAtRef = useRef(0);
 
@@ -718,6 +755,7 @@ function App() {
       smoothedSensorViewRef.current = null;
       alphaFallbackOffsetRef.current = null;
       lastAzimuthLearningSampleRef.current = null;
+      sensorProfileStatsRef.current = initialSensorProfileStats();
       return;
     }
 
@@ -741,6 +779,7 @@ function App() {
     smoothedSensorViewRef.current = null;
     alphaFallbackOffsetRef.current = null;
     lastAzimuthLearningSampleRef.current = null;
+    sensorProfileStatsRef.current = initialSensorProfileStats();
     setSensorModeEnabled(true);
     setSensorNotice(null);
   }
@@ -1166,6 +1205,31 @@ function App() {
       const alpha = typeof event.alpha === 'number' ? event.alpha : null;
       const beta = typeof event.beta === 'number' ? event.beta : null;
       const gamma = typeof event.gamma === 'number' ? event.gamma : null;
+      const profileStats = sensorProfileStatsRef.current;
+      if (webkitHeading !== null) {
+        profileStats.profile = 'ios';
+        profileStats.samples += 1;
+        profileStats.lastAzimuthDeg = estimatedAzimuthDeg;
+      } else if (estimatedAzimuthDeg !== null) {
+        const profileDelta = profileStats.lastAzimuthDeg === null
+          ? 0
+          : Math.abs(shortestAzimuthDelta(estimatedAzimuthDeg, profileStats.lastAzimuthDeg));
+        profileStats.samples += 1;
+        if (profileDelta > 45) profileStats.largeJumpCount += 1;
+        if (profileDelta > 8) profileStats.jitterScore += Math.min(profileDelta, 90);
+        profileStats.lastAzimuthDeg = estimatedAzimuthDeg;
+
+        if (profileStats.samples < 18) {
+          profileStats.profile = 'detecting';
+        } else if (profileStats.largeJumpCount >= 6 || profileStats.jitterScore / profileStats.samples > 18) {
+          profileStats.profile = 'manual_recommended';
+        } else if (profileStats.largeJumpCount >= 2 || profileStats.jitterScore / profileStats.samples > 8) {
+          profileStats.profile = 'android_unstable';
+        } else {
+          profileStats.profile = 'android_stable';
+        }
+      }
+      const sensorProfile = profileStats.profile;
       if (!useAlphaFallback && webkitHeading !== null && alphaDirectAzimuthDeg !== null) {
         const last = lastAzimuthLearningSampleRef.current;
         if (last) {
@@ -1183,6 +1247,7 @@ function App() {
       setSensorProbe({
         supported: true,
         permissionState: 'granted',
+        sensorProfile,
         eventType,
         alpha,
         beta,
@@ -1220,9 +1285,15 @@ function App() {
           alphaFallbackOffsetRef.current = null;
         }
         const horizonLikeAltitude = Math.abs(correctedAltitudeDeg) <= 10;
+        const jumpThreshold =
+          sensorProfile === 'manual_recommended'
+            ? 25
+            : sensorProfile === 'android_unstable'
+              ? 35
+              : 55;
         if (
           horizonLikeAltitude &&
-          Math.abs(shortestAzimuthDelta(nextEstimatedAzimuthDeg, previous.azimuthDeg)) > 55
+          Math.abs(shortestAzimuthDelta(nextEstimatedAzimuthDeg, previous.azimuthDeg)) > jumpThreshold
         ) {
           nextEstimatedAzimuthDeg = previous.azimuthDeg;
         }
@@ -1232,14 +1303,40 @@ function App() {
         // the current view so source changes stay continuous.
         const androidLikeAzimuth = webkitHeading === null && !useAlphaFallback;
         const steadyHorizonAzimuth = androidLikeAzimuth && horizonLikeAltitude;
-        const azimuthSmoothing = steadyHorizonAzimuth ? 0.12 : 0.24;
-        const altitudeSmoothing = 0.24;
+        const azimuthSmoothing =
+          sensorProfile === 'manual_recommended'
+            ? steadyHorizonAzimuth ? 0.04 : 0.06
+            : sensorProfile === 'android_unstable'
+              ? steadyHorizonAzimuth ? 0.07 : 0.1
+              : sensorProfile === 'android_stable'
+                ? steadyHorizonAzimuth ? 0.1 : 0.18
+                : steadyHorizonAzimuth ? 0.12 : 0.24;
+        const maxAzimuthStep =
+          sensorProfile === 'manual_recommended'
+            ? steadyHorizonAzimuth ? 1.5 : 2.5
+            : sensorProfile === 'android_unstable'
+              ? steadyHorizonAzimuth ? 3 : 5
+              : sensorProfile === 'android_stable'
+                ? steadyHorizonAzimuth ? 5 : 10
+                : steadyHorizonAzimuth ? 6 : 18;
+        const altitudeSmoothing =
+          sensorProfile === 'manual_recommended'
+            ? 0.12
+            : sensorProfile === 'android_unstable'
+              ? 0.18
+              : 0.24;
+        const maxAltitudeStep =
+          sensorProfile === 'manual_recommended'
+            ? 4
+            : sensorProfile === 'android_unstable'
+              ? 7
+              : 12;
         const azimuthStep = limitedSensorStep(
           azimuthDeltaDeg,
           azimuthSmoothing,
-          steadyHorizonAzimuth ? 6 : 18,
+          maxAzimuthStep,
         );
-        const altitudeStep = limitedSensorStep(correctedAltitudeDeg - previous.altitudeDeg, altitudeSmoothing, 12);
+        const altitudeStep = limitedSensorStep(correctedAltitudeDeg - previous.altitudeDeg, altitudeSmoothing, maxAltitudeStep);
         const nextAzimuthDeg = normalizeAzimuth(
           previous.azimuthDeg + azimuthStep,
         );
@@ -2248,6 +2345,10 @@ function SettingsPage({
             <div>
               <span>権限</span>
               <strong>{permissionLabel}</strong>
+            </div>
+            <div>
+              <span>補正</span>
+              <strong>{getSensorProfileLabel(sensorProbe.sensorProfile)}</strong>
             </div>
             <div>
               <span>event</span>

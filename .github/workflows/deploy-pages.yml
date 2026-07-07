@@ -37,7 +37,7 @@ jobs:
           GITHUB_PAGES: 'true'
           VITE_API_BASE_URL: ${{ vars.SORAVA_API_BASE_URL || 'https://skyshare-nhcb.onrender.com' }}
           VITE_WS_URL: ${{ vars.SORAVA_WS_URL || 'wss://skyshare-nhcb.onrender.com/ws' }}
-          VITE_GUEST_ACCESS_CODE: ${{ vars.VITE_GUEST_ACCESS_CODE }}
+          VITE_GUEST_ACCESS_CODE: ${{ vars.VITE_GUEST_ACCESS_CODE || '0629' }}
 
       - name: Add SPA fallback
         run: cp dist/index.html dist/404.html
