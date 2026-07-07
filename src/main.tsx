@@ -72,6 +72,7 @@ const GUEST_ACCESS_CODE = GUEST_ACCESS_CODE_ENABLED
   ? CONFIGURED_GUEST_ACCESS_CODE || DEFAULT_PUBLIC_GUEST_ACCESS_CODE
   : '';
 const MAINTENANCE_UNLOCKED_KEY = 'sorava_maintenance_unlocked_v2';
+const MAINTENANCE_UNLOCK_AT_MS = new Date('2026-07-07T19:00:00+09:00').getTime();
 
 type GuestJoinGateState = {
   status: 'none' | 'pass' | 'rejected';
@@ -169,8 +170,23 @@ function writeSessionFlag(key: string, value: boolean) {
   }
 }
 
+function isMaintenanceActive() {
+  return Number.isFinite(MAINTENANCE_UNLOCK_AT_MS) && Date.now() < MAINTENANCE_UNLOCK_AT_MS;
+}
+
+function formatCountdown(ms: number) {
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds
+    .toString()
+    .padStart(2, '0')}`;
+}
+
 function getInitialGuestJoinGate(): GuestJoinGateState {
   const sessionId = getJoinSessionId();
+  if (!isMaintenanceActive()) return { status: 'none', sessionId, error: null };
   if (!GUEST_ACCESS_CODE) return { status: 'none', sessionId, error: null };
   if (readSessionFlag(MAINTENANCE_UNLOCKED_KEY)) return { status: 'none', sessionId, error: null };
   return { status: 'pass', sessionId, error: null };
@@ -1017,6 +1033,15 @@ function App() {
     event.preventDefault();
     const sessionId = guestJoinGate.sessionId;
 
+    if (!isMaintenanceActive()) {
+      setGuestJoinGate({ status: 'none', sessionId, error: null });
+      setGuestPassInput('');
+      if (sessionId) {
+        joinGuestSession(sessionId);
+      }
+      return;
+    }
+
     if (guestPassInput.trim() === GUEST_ACCESS_CODE) {
       writeSessionFlag(MAINTENANCE_UNLOCKED_KEY, true);
       setGuestJoinGate({ status: 'none', sessionId, error: null });
@@ -1152,6 +1177,20 @@ function App() {
       joinGuestSession(joinSessionId);
     }
   }, [guestJoinGate.status]);
+
+  useEffect(() => {
+    if (guestJoinGate.status !== 'pass') return;
+    const sessionId = guestJoinGate.sessionId;
+    const timer = window.setInterval(() => {
+      if (isMaintenanceActive()) return;
+      setGuestPassInput('');
+      setGuestJoinGate({ status: 'none', sessionId, error: null });
+      if (sessionId) {
+        joinGuestSession(sessionId);
+      }
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [guestJoinGate.sessionId, guestJoinGate.status]);
 
   useEffect(() => {
     return () => {
@@ -1546,6 +1585,7 @@ function App() {
         uiMode={uiMode}
         value={guestPassInput}
         error={guestJoinGate.error}
+        unlockAtMs={MAINTENANCE_UNLOCK_AT_MS}
         onChange={setGuestPassInput}
         onSubmit={submitGuestPass}
       />
@@ -1775,6 +1815,7 @@ function GuestPassGate({
   uiMode,
   value,
   error,
+  unlockAtMs,
   onChange,
   onSubmit,
 }: {
@@ -1782,14 +1823,28 @@ function GuestPassGate({
   uiMode: UiMode;
   value: string;
   error: string | null;
+  unlockAtMs: number;
   onChange: (value: string) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
 }) {
+  const [remainingMs, setRemainingMs] = useState(() => Math.max(0, unlockAtMs - Date.now()));
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setRemainingMs(Math.max(0, unlockAtMs - Date.now()));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [unlockAtMs]);
+
   return (
     <main className={`app-shell gate-shell ${nightMode ? 'night-mode' : ''}`} data-ui-mode={uiMode}>
       <section className="guest-gate-card">
         <h1>Sorava</h1>
         <p>メンテナンス</p>
+        <div className="maintenance-countdown">
+          <span>解除まで</span>
+          <strong>{formatCountdown(remainingMs)}</strong>
+        </div>
         <form className="guest-pass-form" onSubmit={onSubmit}>
           <input
             type="password"
