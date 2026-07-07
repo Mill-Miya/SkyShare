@@ -276,9 +276,9 @@ input:not([type="checkbox"]):not([type="radio"]) {
   left: 10px;
   z-index: 6;
   display: grid;
-  gap: 5px;
-  max-width: min(290px, calc(100% - 90px));
-  padding: 7px;
+  gap: 6px;
+  width: min(310px, calc(100% - 92px));
+  padding: 8px;
   border: 1px solid rgba(244, 241, 223, 0.16);
   border-radius: 8px;
   color: rgba(244, 241, 223, 0.88);
@@ -287,14 +287,57 @@ input:not([type="checkbox"]):not([type="radio"]) {
 }
 
 .time-controls-label {
-  font-size: 11px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10px;
   font-weight: 800;
+}
+
+.time-controls-label strong {
+  color: rgba(244, 241, 223, 0.96);
+  font-size: 11px;
+}
+
+.time-dials {
+  display: grid;
+  gap: 4px;
+}
+
+.time-dials label {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 38px;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.time-dials output {
+  color: rgba(244, 241, 223, 0.9);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.time-dials input[type='range'] {
+  width: 100%;
+  accent-color: rgba(210, 214, 170, 0.9);
+}
+
+.time-dials input[type='range']::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(244, 241, 223, 0.22);
+}
+
+.time-dials input[type='range']::-webkit-slider-thumb {
+  margin-top: -6px;
 }
 
 .time-controls-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+  justify-content: flex-end;
 }
 
 .time-controls-actions button {
@@ -318,6 +361,14 @@ input:not([type="checkbox"]):not([type="radio"]) {
   border-color: rgba(255, 88, 68, 0.2);
   color: #ff9a8d;
   background: rgba(80, 0, 0, 0.18);
+}
+
+.night-mode .time-dials input[type='range'] {
+  accent-color: rgba(255, 123, 107, 0.9);
+}
+
+.night-mode .time-dials input[type='range']::-webkit-slider-runnable-track {
+  background: rgba(255, 123, 107, 0.24);
 }
 
 .sensor-notice {
@@ -1604,13 +1655,24 @@ input:not([type="checkbox"]):not([type="radio"]) {
   .time-controls {
     top: 8px;
     left: 8px;
-    max-width: min(238px, calc(100% - 78px));
-    padding: 6px;
+    width: min(282px, calc(100% - 76px));
+    padding: 7px;
   }
 
   .time-controls-label,
-  .time-controls-actions button {
+  .time-controls-label strong,
+  .time-controls-actions button,
+  .time-dials label {
     font-size: 10px;
+  }
+
+  .time-dials {
+    gap: 3px;
+  }
+
+  .time-dials label {
+    grid-template-columns: 20px minmax(0, 1fr) 32px;
+    gap: 5px;
   }
 
   .time-controls-actions button {

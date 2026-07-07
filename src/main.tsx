@@ -142,6 +142,10 @@ function readStoredUiMode(): UiMode {
   return 'standard';
 }
 
+function daysInMonth(year: number, monthIndex: number) {
+  return new Date(year, monthIndex + 1, 0).getDate();
+}
+
 function readSessionFlag(key: string) {
   try {
     return window.sessionStorage.getItem(key) === 'true';
@@ -1162,10 +1166,29 @@ function App() {
     setTime(new Date());
   }
 
-  function shiftObservationTime(minutes: number) {
+  function setObservationTimePart(part: 'year' | 'month' | 'day' | 'hour' | 'minute', value: number) {
     if (sessionRole !== 'none') return;
     setManualTimeEnabled(true);
-    setTime((current) => new Date(current.getTime() + minutes * 60 * 1000));
+    setTime((current) => {
+      const next = new Date(current);
+      if (part === 'year') {
+        const month = next.getMonth();
+        const day = Math.min(next.getDate(), daysInMonth(value, month));
+        next.setFullYear(value, month, day);
+      } else if (part === 'month') {
+        const month = value - 1;
+        const day = Math.min(next.getDate(), daysInMonth(next.getFullYear(), month));
+        next.setMonth(month, day);
+      } else if (part === 'day') {
+        next.setDate(value);
+      } else if (part === 'hour') {
+        next.setHours(value);
+      } else {
+        next.setMinutes(value);
+      }
+      next.setSeconds(0, 0);
+      return next;
+    });
   }
 
   useEffect(() => {
@@ -1494,6 +1517,16 @@ function App() {
     return calculateSunPosition(location, time);
   }, [location, time]);
   const skyBrightnessState = sunPosition ? getSkyBrightnessState(sunPosition.altitudeDeg) : null;
+  const timeDialYearMin = new Date().getFullYear() - 1;
+  const timeDialYearMax = new Date().getFullYear() + 2;
+  const timeDialParts = {
+    year: time.getFullYear(),
+    month: time.getMonth() + 1,
+    day: time.getDate(),
+    hour: time.getHours(),
+    minute: time.getMinutes(),
+    maxDay: daysInMonth(time.getFullYear(), time.getMonth()),
+  };
 
   const activeTargetId =
     shareMode === 'pointer'
@@ -1588,24 +1621,77 @@ function App() {
         {sessionRole === 'none' && betaFeaturesEnabled && (
           <div className="time-controls" aria-label="観望時刻">
             <div className="time-controls-label">
-              {manualTimeEnabled ? '手動' : '現在'}{' '}
-              {time.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+              <span>{manualTimeEnabled ? '手動時刻' : '現在時刻'}</span>
+              <strong>
+                {time.toLocaleDateString('ja-JP', { month: '2-digit', day: '2-digit' })}{' '}
+                {time.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+              </strong>
+            </div>
+            <div className="time-dials">
+              <label>
+                <span>年</span>
+                <input
+                  type="range"
+                  min={timeDialYearMin}
+                  max={timeDialYearMax}
+                  step={1}
+                  value={timeDialParts.year}
+                  onChange={(event) => setObservationTimePart('year', Number(event.currentTarget.value))}
+                />
+                <output>{timeDialParts.year}</output>
+              </label>
+              <label>
+                <span>月</span>
+                <input
+                  type="range"
+                  min={1}
+                  max={12}
+                  step={1}
+                  value={timeDialParts.month}
+                  onChange={(event) => setObservationTimePart('month', Number(event.currentTarget.value))}
+                />
+                <output>{timeDialParts.month}</output>
+              </label>
+              <label>
+                <span>日</span>
+                <input
+                  type="range"
+                  min={1}
+                  max={timeDialParts.maxDay}
+                  step={1}
+                  value={timeDialParts.day}
+                  onChange={(event) => setObservationTimePart('day', Number(event.currentTarget.value))}
+                />
+                <output>{timeDialParts.day}</output>
+              </label>
+              <label>
+                <span>時</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={23}
+                  step={1}
+                  value={timeDialParts.hour}
+                  onChange={(event) => setObservationTimePart('hour', Number(event.currentTarget.value))}
+                />
+                <output>{timeDialParts.hour}</output>
+              </label>
+              <label>
+                <span>分</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={59}
+                  step={1}
+                  value={timeDialParts.minute}
+                  onChange={(event) => setObservationTimePart('minute', Number(event.currentTarget.value))}
+                />
+                <output>{timeDialParts.minute.toString().padStart(2, '0')}</output>
+              </label>
             </div>
             <div className="time-controls-actions">
-              <button type="button" onClick={() => shiftObservationTime(-60)}>
-                -1h
-              </button>
-              <button type="button" onClick={() => shiftObservationTime(-10)}>
-                -10m
-              </button>
               <button type="button" onClick={setCurrentTime}>
                 Now
-              </button>
-              <button type="button" onClick={() => shiftObservationTime(10)}>
-                +10m
-              </button>
-              <button type="button" onClick={() => shiftObservationTime(60)}>
-                +1h
               </button>
             </div>
           </div>
