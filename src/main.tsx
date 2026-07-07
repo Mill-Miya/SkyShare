@@ -1842,7 +1842,7 @@ function GuestPassGate({
         <h1>Sorava</h1>
         <p>メンテナンス</p>
         <div className="maintenance-countdown">
-          <span>解除まで</span>
+          <span>終了まで</span>
           <strong>{formatCountdown(remainingMs)}</strong>
         </div>
         <form className="guest-pass-form" onSubmit={onSubmit}>
