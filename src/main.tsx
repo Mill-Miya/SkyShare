@@ -676,6 +676,7 @@ function App() {
   const pointerDisplayAnimationRef = useRef<number | null>(null);
   const displayedSharedPointerRef = useRef<SharedPointer | null>(null);
   const targetSharedPointerRef = useRef<SharedPointer | null>(null);
+  const manualTimeBaseRef = useRef<{ observationMs: number; realMs: number } | null>(null);
   const smoothedSensorViewRef = useRef<{ azimuthDeg: number; altitudeDeg: number } | null>(null);
   const alphaFallbackOffsetRef = useRef<number | null>(null);
   const alphaFallbackDirectionRef = useRef<1 | -1>(-1);
@@ -1165,6 +1166,7 @@ function App() {
   }, []);
 
   function setCurrentTime() {
+    manualTimeBaseRef.current = null;
     setManualTimeEnabled(false);
     setTime(new Date());
   }
@@ -1175,17 +1177,28 @@ function App() {
     if (Number.isNaN(next.getTime())) return;
     setManualTimeEnabled(true);
     next.setSeconds(0, 0);
+    manualTimeBaseRef.current = { observationMs: next.getTime(), realMs: Date.now() };
     setTime(next);
   }
 
   useEffect(() => {
-    if (manualTimeEnabled) return;
-    const timer = window.setInterval(() => setTime(new Date()), 30000);
+    const timer = window.setInterval(
+      () => {
+        const base = manualTimeBaseRef.current;
+        if (manualTimeEnabled && base) {
+          setTime(new Date(base.observationMs + (Date.now() - base.realMs)));
+          return;
+        }
+        setTime(new Date());
+      },
+      manualTimeEnabled ? 1000 : 30000,
+    );
     return () => window.clearInterval(timer);
   }, [manualTimeEnabled]);
 
   useEffect(() => {
     if (sessionRole === 'none') return;
+    manualTimeBaseRef.current = null;
     setManualTimeEnabled(false);
     setTime(new Date());
   }, [sessionRole]);
