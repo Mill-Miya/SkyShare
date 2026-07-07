@@ -643,6 +643,8 @@ function App() {
   const [nightMode, setNightMode] = useState(false);
   const [showAurora, setShowAurora] = useState(false);
   const [showAltitudeGuide, setShowAltitudeGuide] = useState(true);
+  const [betaFeaturesEnabled, setBetaFeaturesEnabled] = useState(false);
+  const [manualTimeEnabled, setManualTimeEnabled] = useState(false);
   const [sensorModeEnabled, setSensorModeEnabled] = useState(false);
   const [sensorProbe, setSensorProbe] = useState<SensorProbeState>(() => initialSensorProbe());
   const [sensorNotice, setSensorNotice] = useState<string | null>(null);
@@ -1155,10 +1157,28 @@ function App() {
     };
   }, []);
 
+  function setCurrentTime() {
+    setManualTimeEnabled(false);
+    setTime(new Date());
+  }
+
+  function shiftObservationTime(minutes: number) {
+    if (sessionRole !== 'none') return;
+    setManualTimeEnabled(true);
+    setTime((current) => new Date(current.getTime() + minutes * 60 * 1000));
+  }
+
   useEffect(() => {
+    if (manualTimeEnabled) return;
     const timer = window.setInterval(() => setTime(new Date()), 30000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [manualTimeEnabled]);
+
+  useEffect(() => {
+    if (sessionRole === 'none') return;
+    setManualTimeEnabled(false);
+    setTime(new Date());
+  }, [sessionRole]);
 
   useEffect(() => {
     if (!sensorModeEnabled) {
@@ -1515,7 +1535,7 @@ function App() {
           <h1>Sky</h1>
           <p>{locationStatus}</p>
         </div>
-        <button type="button" onClick={() => setTime(new Date())}>
+        <button type="button" onClick={setCurrentTime}>
           Now
         </button>
       </section>
@@ -1565,6 +1585,31 @@ function App() {
         >
           {sensorModeEnabled ? '追従' : '手動'}
         </button>
+        {sessionRole === 'none' && betaFeaturesEnabled && (
+          <div className="time-controls" aria-label="観望時刻">
+            <div className="time-controls-label">
+              {manualTimeEnabled ? '手動' : '現在'}{' '}
+              {time.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+            </div>
+            <div className="time-controls-actions">
+              <button type="button" onClick={() => shiftObservationTime(-60)}>
+                -1h
+              </button>
+              <button type="button" onClick={() => shiftObservationTime(-10)}>
+                -10m
+              </button>
+              <button type="button" onClick={setCurrentTime}>
+                Now
+              </button>
+              <button type="button" onClick={() => shiftObservationTime(10)}>
+                +10m
+              </button>
+              <button type="button" onClick={() => shiftObservationTime(60)}>
+                +1h
+              </button>
+            </div>
+          </div>
+        )}
         {sensorNotice && <div className="sensor-notice">{sensorNotice}</div>}
         {debug && (
           <div className="view-readout">
@@ -1670,11 +1715,13 @@ function App() {
                 nightMode={nightMode}
                 showAurora={showAurora}
                 showAltitudeGuide={showAltitudeGuide}
+                betaFeaturesEnabled={betaFeaturesEnabled}
                 sensorProbe={sensorProbe}
                 invertSensorAltitude={invertSensorAltitude}
                 onNightModeChange={setNightMode}
                 onShowAuroraChange={setShowAurora}
                 onShowAltitudeGuideChange={setShowAltitudeGuide}
+                onBetaFeaturesEnabledChange={setBetaFeaturesEnabled}
                 onInvertSensorAltitudeChange={setInvertSensorAltitude}
               />
             )}
@@ -2263,21 +2310,25 @@ function SettingsPage({
   nightMode,
   showAurora,
   showAltitudeGuide,
+  betaFeaturesEnabled,
   sensorProbe,
   invertSensorAltitude,
   onNightModeChange,
   onShowAuroraChange,
   onShowAltitudeGuideChange,
+  onBetaFeaturesEnabledChange,
   onInvertSensorAltitudeChange,
 }: {
   nightMode: boolean;
   showAurora: boolean;
   showAltitudeGuide: boolean;
+  betaFeaturesEnabled: boolean;
   sensorProbe: SensorProbeState;
   invertSensorAltitude: boolean;
   onNightModeChange: (enabled: boolean) => void;
   onShowAuroraChange: (enabled: boolean) => void;
   onShowAltitudeGuideChange: (enabled: boolean) => void;
+  onBetaFeaturesEnabledChange: (enabled: boolean) => void;
   onInvertSensorAltitudeChange: (enabled: boolean) => void;
 }) {
   const [adminPasscode, setAdminPasscode] = useState('');
@@ -2322,6 +2373,18 @@ function SettingsPage({
           <small>空の雰囲気を少し残します</small>
         </span>
         <input type="checkbox" checked={showAurora} onChange={(event) => onShowAuroraChange(event.target.checked)} />
+      </label>
+
+      <label className="toggle-row">
+        <span>
+          <strong>ベータ版を使用</strong>
+          <small>未参加時だけSkyに時刻操作を表示します</small>
+        </span>
+        <input
+          type="checkbox"
+          checked={betaFeaturesEnabled}
+          onChange={(event) => onBetaFeaturesEnabledChange(event.target.checked)}
+        />
       </label>
 
       <label className="toggle-row">

@@ -270,6 +270,56 @@ input:not([type="checkbox"]):not([type="radio"]) {
   background: rgba(80, 0, 0, 0.56);
 }
 
+.time-controls {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 6;
+  display: grid;
+  gap: 5px;
+  max-width: min(290px, calc(100% - 90px));
+  padding: 7px;
+  border: 1px solid rgba(244, 241, 223, 0.16);
+  border-radius: 8px;
+  color: rgba(244, 241, 223, 0.88);
+  background: rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(10px);
+}
+
+.time-controls-label {
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.time-controls-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.time-controls-actions button {
+  min-height: 28px;
+  padding: 3px 7px;
+  border: 1px solid rgba(244, 241, 223, 0.14);
+  border-radius: 7px;
+  color: rgba(244, 241, 223, 0.86);
+  background: rgba(244, 241, 223, 0.06);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.night-mode .time-controls {
+  border-color: rgba(255, 88, 68, 0.24);
+  color: #ff9a8d;
+  background: rgba(18, 0, 0, 0.48);
+}
+
+.night-mode .time-controls-actions button {
+  border-color: rgba(255, 88, 68, 0.2);
+  color: #ff9a8d;
+  background: rgba(80, 0, 0, 0.18);
+}
+
 .sensor-notice {
   position: absolute;
   top: 50px;
@@ -1549,6 +1599,23 @@ input:not([type="checkbox"]):not([type="radio"]) {
     min-height: 32px;
     padding: 5px 8px;
     font-size: 12px;
+  }
+
+  .time-controls {
+    top: 8px;
+    left: 8px;
+    max-width: min(238px, calc(100% - 78px));
+    padding: 6px;
+  }
+
+  .time-controls-label,
+  .time-controls-actions button {
+    font-size: 10px;
+  }
+
+  .time-controls-actions button {
+    min-height: 26px;
+    padding: 3px 6px;
   }
 
   .sensor-notice {
