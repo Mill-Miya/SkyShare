@@ -55,6 +55,10 @@ const FALLBACK_LOCATION: ObserverLocation = {
 
 const SHEET_ANIMATION_MS = 220;
 const VIEW_ANIMATION_MS = 720;
+const POINTER_SEND_INTERVAL_MS = 50;
+const POINTER_SEND_MIN_DELTA_DEG = 0.2;
+const POINTER_DISPLAY_SMOOTHING = 0.38;
+const POINTER_DISPLAY_MAX_STEP_DEG = 12;
 const DEFAULT_PUBLIC_API_BASE_URL = 'https://skyshare-nhcb.onrender.com';
 const DEFAULT_PUBLIC_WS_URL = 'wss://skyshare-nhcb.onrender.com/ws';
 const SENSOR_INVERT_ALTITUDE_KEY = 'sorava.sensor.invertAltitude.v3';
@@ -625,6 +629,7 @@ function App() {
   const [sharedTargetId, setSharedTargetId] = useState<TargetId | null>(null);
   const [shareMode, setShareMode] = useState<ShareMode>('off');
   const [sharedPointer, setSharedPointer] = useState<SharedPointer | null>(null);
+  const [displayedSharedPointer, setDisplayedSharedPointer] = useState<SharedPointer | null>(null);
   const [participantCount, setParticipantCount] = useState(0);
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'reconnecting'>('disconnected');
   const [joinUrl, setJoinUrl] = useState('');
@@ -659,6 +664,9 @@ function App() {
   const sheetCloseTimerRef = useRef<number | null>(null);
   const viewAnimationRef = useRef<number | null>(null);
   const lastPointerSendRef = useRef<{ azimuthDeg: number; altitudeDeg: number; time: number } | null>(null);
+  const pointerDisplayAnimationRef = useRef<number | null>(null);
+  const displayedSharedPointerRef = useRef<SharedPointer | null>(null);
+  const targetSharedPointerRef = useRef<SharedPointer | null>(null);
   const smoothedSensorViewRef = useRef<{ azimuthDeg: number; altitudeDeg: number } | null>(null);
   const alphaFallbackOffsetRef = useRef<number | null>(null);
   const alphaFallbackDirectionRef = useRef<1 | -1>(-1);
@@ -1140,6 +1148,9 @@ function App() {
       clearReconnectTimer();
       clearSheetCloseTimer();
       cancelViewAnimation(false);
+      if (pointerDisplayAnimationRef.current !== null) {
+        window.cancelAnimationFrame(pointerDisplayAnimationRef.current);
+      }
       socketRef.current?.close();
     };
   }, []);
@@ -1366,9 +1377,9 @@ function App() {
     const last = lastPointerSendRef.current;
     const changedEnough =
       !last ||
-      Math.abs(shortestAzimuthDelta(view.centerAzimuthDeg, last.azimuthDeg)) >= 0.35 ||
-      Math.abs(view.centerAltitudeDeg - last.altitudeDeg) >= 0.35;
-    const waitedEnough = !last || now - last.time >= 80;
+      Math.abs(shortestAzimuthDelta(view.centerAzimuthDeg, last.azimuthDeg)) >= POINTER_SEND_MIN_DELTA_DEG ||
+      Math.abs(view.centerAltitudeDeg - last.altitudeDeg) >= POINTER_SEND_MIN_DELTA_DEG;
+    const waitedEnough = !last || now - last.time >= POINTER_SEND_INTERVAL_MS;
 
     if (!changedEnough || !waitedEnough) return;
 
@@ -1381,6 +1392,72 @@ function App() {
       altitude: pointer.altitudeDeg,
     });
   }, [sessionRole, shareMode, view.centerAzimuthDeg, view.centerAltitudeDeg]);
+
+  useEffect(() => {
+    if (sessionRole !== 'guest' || shareMode !== 'pointer' || !sharedPointer) {
+      targetSharedPointerRef.current = null;
+      displayedSharedPointerRef.current = null;
+      setDisplayedSharedPointer(null);
+      if (pointerDisplayAnimationRef.current !== null) {
+        window.cancelAnimationFrame(pointerDisplayAnimationRef.current);
+        pointerDisplayAnimationRef.current = null;
+      }
+      return;
+    }
+
+    targetSharedPointerRef.current = sharedPointer;
+    if (!displayedSharedPointerRef.current) {
+      displayedSharedPointerRef.current = sharedPointer;
+      setDisplayedSharedPointer(sharedPointer);
+      return;
+    }
+
+    if (pointerDisplayAnimationRef.current !== null) return;
+
+    const step = () => {
+      const target = targetSharedPointerRef.current;
+      const current = displayedSharedPointerRef.current;
+      if (!target || !current) {
+        pointerDisplayAnimationRef.current = null;
+        return;
+      }
+
+      const azimuthDelta = shortestAzimuthDelta(target.azimuthDeg, current.azimuthDeg);
+      const altitudeDelta = target.altitudeDeg - current.altitudeDeg;
+      if (Math.abs(azimuthDelta) < 0.04 && Math.abs(altitudeDelta) < 0.04) {
+        displayedSharedPointerRef.current = target;
+        setDisplayedSharedPointer(target);
+        pointerDisplayAnimationRef.current = null;
+        return;
+      }
+
+      const nextPointer = {
+        azimuthDeg: normalizeAzimuth(
+          current.azimuthDeg +
+            clamp(
+              azimuthDelta * POINTER_DISPLAY_SMOOTHING,
+              -POINTER_DISPLAY_MAX_STEP_DEG,
+              POINTER_DISPLAY_MAX_STEP_DEG,
+            ),
+        ),
+        altitudeDeg: clamp(
+          current.altitudeDeg +
+            clamp(
+              altitudeDelta * POINTER_DISPLAY_SMOOTHING,
+              -POINTER_DISPLAY_MAX_STEP_DEG,
+              POINTER_DISPLAY_MAX_STEP_DEG,
+            ),
+          -90,
+          90,
+        ),
+      };
+      displayedSharedPointerRef.current = nextPointer;
+      setDisplayedSharedPointer(nextPointer);
+      pointerDisplayAnimationRef.current = window.requestAnimationFrame(step);
+    };
+
+    pointerDisplayAnimationRef.current = window.requestAnimationFrame(step);
+  }, [sessionRole, shareMode, sharedPointer]);
 
   const positions = useMemo(() => {
     if (!location) return [];
@@ -1407,9 +1484,10 @@ function App() {
   const selectedPosition = positions.find((position) => position.id === activeTargetId) ?? null;
   const guidance: GuidanceState | null = selectedPosition ? calculateGuidance(selectedPosition, view) : null;
   const selectedStatus = selectedPosition ? getAltitudeStatus(selectedPosition.altitudeDeg) : null;
+  const guestPointerForDisplay = displayedSharedPointer ?? sharedPointer;
   const hostPointerPosition: TargetPosition | null =
-    sessionRole === 'guest' && shareMode === 'pointer' && sharedPointer
-      ? { id: 'host_pointer', azimuthDeg: sharedPointer.azimuthDeg, altitudeDeg: sharedPointer.altitudeDeg }
+    sessionRole === 'guest' && shareMode === 'pointer' && guestPointerForDisplay
+      ? { id: 'host_pointer', azimuthDeg: guestPointerForDisplay.azimuthDeg, altitudeDeg: guestPointerForDisplay.altitudeDeg }
       : null;
   const hostPointerGuidance = hostPointerPosition ? calculateGuidance(hostPointerPosition, view) : null;
 
@@ -1527,8 +1605,8 @@ function App() {
         {sessionRole === 'guest' && shareMode === 'pointer' && !sharedPointer && (
           <div className="shared-empty-note">Host方向を待機中</div>
         )}
-        {sessionRole === 'guest' && shareMode === 'pointer' && sharedPointer && viewMetrics && (
-          <PointerOverlay pointer={sharedPointer} view={view} metrics={viewMetrics} />
+        {sessionRole === 'guest' && shareMode === 'pointer' && guestPointerForDisplay && viewMetrics && (
+          <PointerOverlay pointer={guestPointerForDisplay} view={view} metrics={viewMetrics} />
         )}
       </section>
 
