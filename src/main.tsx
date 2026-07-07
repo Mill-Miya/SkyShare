@@ -135,14 +135,7 @@ function readStoredBoolean(key: string, fallback: boolean) {
 }
 
 function readStoredUiMode(): UiMode {
-  try {
-    const storedValue = window.localStorage.getItem(UI_THEME_STORAGE_KEY);
-    if (storedValue === 'simple' || storedValue === 'field') return 'simple';
-    if (storedValue === 'standard' || storedValue === 'classic') return 'standard';
-    return 'standard';
-  } catch {
-    return 'standard';
-  }
+  return 'standard';
 }
 
 function readSessionFlag(key: string) {
@@ -1596,13 +1589,11 @@ function App() {
             )}
             {page === 'settings' && (
               <SettingsPage
-                uiMode={uiMode}
                 nightMode={nightMode}
                 showAurora={showAurora}
                 showAltitudeGuide={showAltitudeGuide}
                 sensorProbe={sensorProbe}
                 invertSensorAltitude={invertSensorAltitude}
-                onUiModeChange={setUiMode}
                 onNightModeChange={setNightMode}
                 onShowAuroraChange={setShowAurora}
                 onShowAltitudeGuideChange={setShowAltitudeGuide}
@@ -2191,25 +2182,21 @@ function SessionPage({
 }
 
 function SettingsPage({
-  uiMode,
   nightMode,
   showAurora,
   showAltitudeGuide,
   sensorProbe,
   invertSensorAltitude,
-  onUiModeChange,
   onNightModeChange,
   onShowAuroraChange,
   onShowAltitudeGuideChange,
   onInvertSensorAltitudeChange,
 }: {
-  uiMode: UiMode;
   nightMode: boolean;
   showAurora: boolean;
   showAltitudeGuide: boolean;
   sensorProbe: SensorProbeState;
   invertSensorAltitude: boolean;
-  onUiModeChange: (mode: UiMode) => void;
   onNightModeChange: (enabled: boolean) => void;
   onShowAuroraChange: (enabled: boolean) => void;
   onShowAltitudeGuideChange: (enabled: boolean) => void;
@@ -2243,29 +2230,6 @@ function SettingsPage({
 
   return (
     <section className="page-panel settings-page">
-      <div className="setting-row">
-        <span>
-          <strong>表示モード</strong>
-          <small>A / B</small>
-        </span>
-        <div className="theme-switch" aria-label="表示モード">
-          <button
-            type="button"
-            className={uiMode === 'simple' ? 'active' : ''}
-            onClick={() => onUiModeChange('simple')}
-          >
-            A
-          </button>
-          <button
-            type="button"
-            className={uiMode === 'standard' ? 'active' : ''}
-            onClick={() => onUiModeChange('standard')}
-          >
-            B
-          </button>
-        </div>
-      </div>
-
       <label className="toggle-row">
         <span>
           <strong>ナイトモード</strong>
