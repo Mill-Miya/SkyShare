@@ -14,7 +14,6 @@ import {
 } from './astronomy';
 import {
   clamp,
-  drawAurora,
   drawGroundAndMountains,
   drawSkyBrightnessBackground,
   drawStars,
@@ -373,7 +372,6 @@ function SkyCanvas({
   nightMode,
   sunPosition,
   sunAltitudeDeg,
-  showAurora,
   showGridLines,
   showAltitudeGuide,
   sensorModeEnabled,
@@ -391,7 +389,6 @@ function SkyCanvas({
   nightMode: boolean;
   sunPosition: SunPosition | null;
   sunAltitudeDeg: number | null;
-  showAurora: boolean;
   showGridLines: boolean;
   showAltitudeGuide: boolean;
   sensorModeEnabled: boolean;
@@ -478,7 +475,6 @@ function SkyCanvas({
     }
 
     drawStars(context, width, height, view, pxPerDeg, stars, nightMode);
-    drawAurora(context, width, height, horizonY, view, nightMode, showAurora);
 
     if (sunPosition) {
       const sunX = centerX + shortestAzimuthDelta(sunPosition.azimuthDeg, view.centerAzimuthDeg) * pxPerDeg;
@@ -638,7 +634,7 @@ function SkyCanvas({
       context.stroke();
       context.restore();
     }
-  }, [debug, nightMode, onMetricsChange, positions, selectedTargetId, showAltitudeGuide, showAurora, showGridLines, showHostPointerCenter, stars, sunAltitudeDeg, sunPosition, view]);
+  }, [debug, nightMode, onMetricsChange, positions, selectedTargetId, showAltitudeGuide, showGridLines, showHostPointerCenter, stars, sunAltitudeDeg, sunPosition, view]);
 
   function getPointerInfo() {
     const pointers = [...gestureRef.current.pointers.values()];
@@ -747,7 +743,6 @@ function App() {
   const [guidanceSuppressed, setGuidanceSuppressed] = useState(false);
   const [uiMode, setUiMode] = useState<UiMode>(() => readStoredUiMode());
   const [nightMode, setNightMode] = useState(false);
-  const [showAurora, setShowAurora] = useState(false);
   const [showGridLines, setShowGridLines] = useState(() => readStoredBoolean(SKY_GRID_LINES_KEY, false));
   const [showAltitudeGuide, setShowAltitudeGuide] = useState(true);
   const [manualTimeEnabled, setManualTimeEnabled] = useState(false);
@@ -1813,7 +1808,6 @@ function App() {
           nightMode={nightMode}
           sunPosition={sunPosition}
           sunAltitudeDeg={sunPosition?.altitudeDeg ?? null}
-          showAurora={showAurora}
           showGridLines={showGridLines}
           showAltitudeGuide={showAltitudeGuide}
           sensorModeEnabled={sensorModeEnabled}
@@ -1984,14 +1978,12 @@ function App() {
             {page === 'settings' && (
               <SettingsPage
                 nightMode={nightMode}
-                showAurora={showAurora}
                 showGridLines={showGridLines}
                 showAltitudeGuide={showAltitudeGuide}
                 sensorProbe={sensorProbe}
                 androidSensorMode={androidSensorMode}
                 invertSensorAltitude={invertSensorAltitude}
                 onNightModeChange={setNightMode}
-                onShowAuroraChange={setShowAurora}
                 onShowGridLinesChange={setShowGridLines}
                 onShowAltitudeGuideChange={setShowAltitudeGuide}
                 onAndroidSensorModeChange={setAndroidSensorMode}
@@ -2608,28 +2600,24 @@ function SessionPage({
 
 function SettingsPage({
   nightMode,
-  showAurora,
   showGridLines,
   showAltitudeGuide,
   sensorProbe,
   androidSensorMode,
   invertSensorAltitude,
   onNightModeChange,
-  onShowAuroraChange,
   onShowGridLinesChange,
   onShowAltitudeGuideChange,
   onAndroidSensorModeChange,
   onInvertSensorAltitudeChange,
 }: {
   nightMode: boolean;
-  showAurora: boolean;
   showGridLines: boolean;
   showAltitudeGuide: boolean;
   sensorProbe: SensorProbeState;
   androidSensorMode: AndroidSensorMode;
   invertSensorAltitude: boolean;
   onNightModeChange: (enabled: boolean) => void;
-  onShowAuroraChange: (enabled: boolean) => void;
   onShowGridLinesChange: (enabled: boolean) => void;
   onShowAltitudeGuideChange: (enabled: boolean) => void;
   onAndroidSensorModeChange: (mode: AndroidSensorMode) => void;
@@ -2696,14 +2684,6 @@ function SettingsPage({
           <option value="b">B</option>
           <option value="c">C</option>
         </select>
-      </label>
-
-      <label className="toggle-row">
-        <span>
-          <strong>背景演出</strong>
-          <small>空の雰囲気を少し残します</small>
-        </span>
-        <input type="checkbox" checked={showAurora} onChange={(event) => onShowAuroraChange(event.target.checked)} />
       </label>
 
       <label className="toggle-row">

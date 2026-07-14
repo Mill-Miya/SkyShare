@@ -140,67 +140,6 @@ export function drawStars(
   context.shadowBlur = 0;
 }
 
-export function drawAurora(
-  context: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  horizonY: number,
-  view: ViewState,
-  nightMode: boolean,
-  showAurora: boolean,
-) {
-  if (!showAurora || horizonY < -height * 0.8) return;
-
-  const alpha = nightMode ? 0.32 : 1;
-  context.save();
-  context.globalCompositeOperation = 'screen';
-  context.filter = 'blur(34px)';
-
-  const centerX = width / 2;
-  const pxPerDeg = view.zoom;
-  const auroraBaseAltDeg = 6;
-  const auroraTopAltDeg = 34;
-  const baseY = horizonY - auroraBaseAltDeg * pxPerDeg;
-  const topY = horizonY - auroraTopAltDeg * pxPerDeg;
-  if (topY > height + 120 || baseY < -height * 0.45) {
-    context.restore();
-    return;
-  }
-
-  const wash = context.createLinearGradient(0, topY, 0, baseY + 34);
-  wash.addColorStop(0, 'rgba(56, 91, 181, 0)');
-  wash.addColorStop(0.36, `rgba(36, 176, 132, ${0.018 * alpha})`);
-  wash.addColorStop(0.58, `rgba(41, 211, 149, ${0.035 * alpha})`);
-  wash.addColorStop(0.78, `rgba(37, 130, 103, ${0.018 * alpha})`);
-  wash.addColorStop(1, 'rgba(12, 54, 48, 0)');
-  context.fillStyle = wash;
-  context.fillRect(-40, topY, width + 80, baseY - topY + 52);
-
-  for (let band = 0; band < 3; band += 1) {
-    const altitudeDeg = 10 + band * 7;
-    const y = horizonY - altitudeDeg * pxPerDeg;
-    const bandGradient = context.createLinearGradient(0, y - 34, 0, y + 44);
-    bandGradient.addColorStop(0, 'rgba(83, 99, 220, 0)');
-    bandGradient.addColorStop(0.46, `rgba(57, 214, 154, ${(0.018 - band * 0.003) * alpha})`);
-    bandGradient.addColorStop(1, 'rgba(23, 98, 83, 0)');
-
-    context.beginPath();
-    context.moveTo(-40, y + Math.sin((view.centerAzimuthDeg + band * 20) * 0.04) * 14);
-    for (let x = -20; x <= width + 40; x += 64) {
-      const azimuthDeg = normalizeAzimuth(view.centerAzimuthDeg + (x - centerX) / pxPerDeg);
-      const wave = Math.sin(azimuthDeg * 0.05 + band) * 18 + Math.sin(azimuthDeg * 0.12 + band * 2) * 8;
-      context.lineTo(x, y + wave);
-    }
-    context.lineTo(width + 40, y + 52);
-    context.lineTo(-40, y + 52);
-    context.closePath();
-    context.fillStyle = bandGradient;
-    context.fill();
-  }
-
-  context.restore();
-}
-
 export function drawSunObject(
   context: CanvasRenderingContext2D,
   position: SunPosition,
