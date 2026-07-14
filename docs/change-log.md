@@ -148,6 +148,7 @@ This file records implementation work and notable design changes so progress can
 - Removed the optional aurora/background-effect feature and its Settings toggle to reduce Sky canvas rendering cost on older Android devices.
 - Changed the optional Sky grid overlay from screen-fixed straight lines to a projected celestial-sphere frame so the guide appears attached to the sky.
 - Refined the Sky grid overlay into a sparse solid sphere frame, removing dotted strokes that appeared to drift during motion.
+- Tightened the optional Sky sphere grid spacing while keeping solid projected lines.
 
 ## Ongoing Rule
 

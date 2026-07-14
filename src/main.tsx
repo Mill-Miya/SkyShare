@@ -500,7 +500,7 @@ function SkyCanvas({
         context.stroke();
       };
 
-      for (let azimuthDeg = 0; azimuthDeg < 360; azimuthDeg += 30) {
+      for (let azimuthDeg = 0; azimuthDeg < 360; azimuthDeg += 20) {
         const points = [];
         for (let altitudeDeg = -15; altitudeDeg <= 90; altitudeDeg += 2) {
           points.push(projectAltAz(azimuthDeg, altitudeDeg));
@@ -508,7 +508,7 @@ function SkyCanvas({
         strokeProjectedLine(points);
       }
 
-      [30, 60].forEach((altitudeDeg) => {
+      [20, 40, 60].forEach((altitudeDeg) => {
         const points = [];
         for (let offsetDeg = -180; offsetDeg <= 180; offsetDeg += 2) {
           points.push(projectAltAz(view.centerAzimuthDeg + offsetDeg, altitudeDeg));
