@@ -60,6 +60,10 @@ input:not([type="checkbox"]):not([type="radio"]) {
     #05080b;
 }
 
+.app-shell:not(.splash-shell) {
+  animation: app-enter 420ms ease both;
+}
+
 .app-shell.night-mode {
   color: #ff7b6b;
   background:
@@ -147,7 +151,7 @@ input:not([type="checkbox"]):not([type="radio"]) {
   grid-template-rows: minmax(0, 1fr);
   place-items: center;
   opacity: 1;
-  transition: opacity 320ms ease;
+  transition: opacity 700ms ease;
 }
 
 .splash-shell.leaving {
@@ -205,6 +209,15 @@ input:not([type="checkbox"]):not([type="radio"]) {
     opacity: 0.55;
   }
   50% {
+    opacity: 1;
+  }
+}
+
+@keyframes app-enter {
+  from {
+    opacity: 0;
+  }
+  to {
     opacity: 1;
   }
 }
@@ -2024,6 +2037,10 @@ input:not([type="checkbox"]):not([type="radio"]) {
 @media (prefers-reduced-motion: reduce) {
   .splash-shell {
     transition-duration: 1ms;
+  }
+
+  .app-shell:not(.splash-shell) {
+    animation-duration: 1ms;
   }
 
   .sheet-layer,
