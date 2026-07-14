@@ -475,10 +475,12 @@ function SkyCanvas({
 
     if (showGridLines) {
       context.save();
-      const gridColor = nightMode ? 'rgba(255, 92, 74, 0.18)' : 'rgba(225, 238, 228, 0.18)';
+      const gridColor = nightMode ? 'rgba(255, 92, 74, 0.16)' : 'rgba(225, 238, 228, 0.16)';
       context.lineWidth = 1;
       context.strokeStyle = gridColor;
-      context.setLineDash([4, 10]);
+      context.setLineDash([]);
+      context.lineCap = 'round';
+      context.lineJoin = 'round';
 
       const strokeProjectedLine = (points: Array<{ x: number; y: number } | null>) => {
         let drawing = false;
@@ -498,17 +500,17 @@ function SkyCanvas({
         context.stroke();
       };
 
-      for (let azimuthDeg = 0; azimuthDeg < 360; azimuthDeg += 15) {
+      for (let azimuthDeg = 0; azimuthDeg < 360; azimuthDeg += 30) {
         const points = [];
-        for (let altitudeDeg = -30; altitudeDeg <= 90; altitudeDeg += 4) {
+        for (let altitudeDeg = -15; altitudeDeg <= 90; altitudeDeg += 2) {
           points.push(projectAltAz(azimuthDeg, altitudeDeg));
         }
         strokeProjectedLine(points);
       }
 
-      [15, 30, 45, 60, 75].forEach((altitudeDeg) => {
+      [30, 60].forEach((altitudeDeg) => {
         const points = [];
-        for (let offsetDeg = -180; offsetDeg <= 180; offsetDeg += 4) {
+        for (let offsetDeg = -180; offsetDeg <= 180; offsetDeg += 2) {
           points.push(projectAltAz(view.centerAzimuthDeg + offsetDeg, altitudeDeg));
         }
         strokeProjectedLine(points);

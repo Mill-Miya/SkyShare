@@ -147,6 +147,7 @@ This file records implementation work and notable design changes so progress can
 - Tuned Android Sensor Mode B as the preferred field mode by switching its heading calculation to direct alpha, reducing jitter, suppressing large heading jumps, and adding an optional Sky grid line overlay from Settings.
 - Removed the optional aurora/background-effect feature and its Settings toggle to reduce Sky canvas rendering cost on older Android devices.
 - Changed the optional Sky grid overlay from screen-fixed straight lines to a projected celestial-sphere frame so the guide appears attached to the sky.
+- Refined the Sky grid overlay into a sparse solid sphere frame, removing dotted strokes that appeared to drift during motion.
 
 ## Ongoing Rule
 
