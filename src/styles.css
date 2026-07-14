@@ -1316,8 +1316,26 @@ input:not([type="checkbox"]):not([type="radio"]) {
   accent-color: #c8c58a;
 }
 
+.setting-row select {
+  min-width: 72px;
+  min-height: 34px;
+  padding: 5px 9px;
+  border: 1px solid rgba(244, 241, 223, 0.18);
+  border-radius: 8px;
+  color: #f4f1df;
+  background: rgba(18, 24, 26, 0.86);
+  font-size: 14px;
+  font-weight: 800;
+}
+
 .night-mode .toggle-row input {
   accent-color: #b48a7e;
+}
+
+.night-mode .setting-row select {
+  border-color: rgba(255, 88, 68, 0.28);
+  color: #ff9a8d;
+  background: rgba(38, 8, 6, 0.9);
 }
 
 .theme-switch {

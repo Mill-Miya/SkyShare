@@ -72,6 +72,8 @@ const GUEST_ACCESS_CODE = GUEST_ACCESS_CODE_ENABLED
   ? CONFIGURED_GUEST_ACCESS_CODE || DEFAULT_PUBLIC_GUEST_ACCESS_CODE
   : '';
 const MAINTENANCE_UNLOCKED_KEY = 'sorava_maintenance_unlocked_v3';
+const MAINTENANCE_UNLOCK_AT_MS = new Date('2026-07-14T19:00:00+09:00').getTime();
+const ANDROID_SENSOR_MODE_KEY = 'sorava.sensor.androidMode.v1';
 
 type GuestJoinGateState = {
   status: 'none' | 'pass' | 'rejected';
@@ -80,6 +82,7 @@ type GuestJoinGateState = {
 };
 
 type UiMode = 'standard' | 'simple';
+type AndroidSensorMode = 'a' | 'b' | 'c';
 
 function isGitHubPagesHost() {
   return window.location.hostname === 'mill-miya.github.io';
@@ -138,6 +141,15 @@ function readStoredBoolean(key: string, fallback: boolean) {
   }
 }
 
+function readStoredAndroidSensorMode(): AndroidSensorMode {
+  try {
+    const storedValue = window.localStorage.getItem(ANDROID_SENSOR_MODE_KEY);
+    return storedValue === 'b' || storedValue === 'c' ? storedValue : 'a';
+  } catch {
+    return 'a';
+  }
+}
+
 function readStoredUiMode(): UiMode {
   return 'standard';
 }
@@ -169,8 +181,13 @@ function writeSessionFlag(key: string, value: boolean) {
   }
 }
 
+function isMaintenanceActive() {
+  return Number.isFinite(MAINTENANCE_UNLOCK_AT_MS) && Date.now() < MAINTENANCE_UNLOCK_AT_MS;
+}
+
 function getInitialGuestJoinGate(): GuestJoinGateState {
   const sessionId = getJoinSessionId();
+  if (!isMaintenanceActive()) return { status: 'none', sessionId, error: null };
   if (!GUEST_ACCESS_CODE) return { status: 'none', sessionId, error: null };
   if (readSessionFlag(MAINTENANCE_UNLOCKED_KEY)) return { status: 'none', sessionId, error: null };
   return { status: 'pass', sessionId, error: null };
@@ -270,9 +287,10 @@ function getSensorProfileLabel(profile: SensorProfile) {
   }
 }
 
-function estimateSensorView(event: DeviceOrientationEvent) {
+function estimateSensorView(event: DeviceOrientationEvent, androidSensorMode: AndroidSensorMode) {
   const alpha = typeof event.alpha === 'number' ? event.alpha : null;
   const beta = typeof event.beta === 'number' ? event.beta : null;
+  const gamma = typeof event.gamma === 'number' ? event.gamma : null;
   const webkitHeading = (event as DeviceOrientationEvent & { webkitCompassHeading?: number }).webkitCompassHeading;
   const alphaDirectAzimuthDeg = alpha !== null ? normalizeAzimuth(alpha) : null;
   const alphaInverseAzimuthDeg = alpha !== null ? normalizeAzimuth(360 - alpha) : null;
@@ -280,18 +298,40 @@ function estimateSensorView(event: DeviceOrientationEvent) {
   // On iOS, webkitCompassHeading can become sticky when beta passes steep
   // upward angles. In that range, alpha remains movable, but its sign is
   // resolved in the event handler from pre-fallback heading samples.
-  const preferAlphaAtSteepAngle = beta !== null && Math.abs(beta) > 120 && alphaDirectAzimuthDeg !== null;
+  const preferAlphaAtSteepAngle =
+    webkitAzimuthDeg !== null && beta !== null && Math.abs(beta) > 120 && alphaDirectAzimuthDeg !== null;
+  const androidAzimuthDeg =
+    androidSensorMode === 'c' && alphaDirectAzimuthDeg !== null ? alphaDirectAzimuthDeg : alphaInverseAzimuthDeg;
   const estimatedAzimuthDeg = preferAlphaAtSteepAngle
     ? alphaDirectAzimuthDeg
-    : webkitAzimuthDeg ?? alphaInverseAzimuthDeg;
+    : webkitAzimuthDeg ?? androidAzimuthDeg;
   const azimuthSource: SensorProbeState['azimuthSource'] = estimatedAzimuthDeg === null
     ? null
     : preferAlphaAtSteepAngle || webkitAzimuthDeg === null
       ? 'alpha'
       : 'webkit';
-  // Current test devices report beta near 90 at the horizon and closer to 0
-  // when aiming upward, so 90 - abs(beta) follows the visible sky direction.
-  const estimatedAltitudeDeg = beta !== null ? clamp(90 - Math.abs(beta), -90, 90) : null;
+  // iOS keeps the existing beta-based path. Android A/B/C intentionally use
+  // different formulas so unstable devices can be compared in the field.
+  const androidAltitudeDeg =
+    androidSensorMode === 'b'
+      ? beta !== null
+        ? clamp(90 - beta, -90, 90)
+        : null
+      : androidSensorMode === 'c'
+        ? gamma !== null
+          ? clamp(-gamma, -90, 90)
+          : beta !== null
+            ? clamp(90 - Math.abs(beta), -90, 90)
+            : null
+        : beta !== null
+          ? clamp(90 - Math.abs(beta), -90, 90)
+          : null;
+  const estimatedAltitudeDeg =
+    webkitAzimuthDeg !== null
+      ? beta !== null
+        ? clamp(90 - Math.abs(beta), -90, 90)
+        : null
+      : androidAltitudeDeg;
 
   return {
     estimatedAzimuthDeg,
@@ -657,6 +697,7 @@ function App() {
   const [sensorNotice, setSensorNotice] = useState<string | null>(null);
   const [guestJoinGate, setGuestJoinGate] = useState<GuestJoinGateState>(() => getInitialGuestJoinGate());
   const [guestPassInput, setGuestPassInput] = useState('');
+  const [androidSensorMode, setAndroidSensorMode] = useState<AndroidSensorMode>(() => readStoredAndroidSensorMode());
   const [invertSensorAltitude, setInvertSensorAltitude] = useState(() =>
     readStoredBoolean(SENSOR_INVERT_ALTITUDE_KEY, DEFAULT_SENSOR_INVERT_ALTITUDE),
   );
@@ -707,6 +748,17 @@ function App() {
     alphaFallbackOffsetRef.current = null;
     lastAzimuthLearningSampleRef.current = null;
   }, [invertSensorAltitude]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(ANDROID_SENSOR_MODE_KEY, androidSensorMode);
+    } catch {
+      // The selected Android calculation mode still applies for the current page.
+    }
+    smoothedSensorViewRef.current = null;
+    alphaFallbackOffsetRef.current = null;
+    sensorProfileStatsRef.current = initialSensorProfileStats();
+  }, [androidSensorMode]);
 
   function clearSheetCloseTimer() {
     if (sheetCloseTimerRef.current !== null) {
@@ -1017,6 +1069,15 @@ function App() {
     event.preventDefault();
     const sessionId = guestJoinGate.sessionId;
 
+    if (!isMaintenanceActive()) {
+      setGuestJoinGate({ status: 'none', sessionId, error: null });
+      setGuestPassInput('');
+      if (sessionId) {
+        joinGuestSession(sessionId);
+      }
+      return;
+    }
+
     if (guestPassInput.trim() === GUEST_ACCESS_CODE) {
       writeSessionFlag(MAINTENANCE_UNLOCKED_KEY, true);
       setGuestJoinGate({ status: 'none', sessionId, error: null });
@@ -1154,6 +1215,20 @@ function App() {
   }, [guestJoinGate.status]);
 
   useEffect(() => {
+    if (guestJoinGate.status !== 'pass') return;
+    const sessionId = guestJoinGate.sessionId;
+    const timer = window.setInterval(() => {
+      if (isMaintenanceActive()) return;
+      setGuestPassInput('');
+      setGuestJoinGate({ status: 'none', sessionId, error: null });
+      if (sessionId) {
+        joinGuestSession(sessionId);
+      }
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [guestJoinGate.sessionId, guestJoinGate.status]);
+
+  useEffect(() => {
     return () => {
       clearReconnectTimer();
       clearSheetCloseTimer();
@@ -1244,7 +1319,7 @@ function App() {
         alphaAzimuthDeg,
         useAlphaFallback,
         azimuthSource,
-      } = estimateSensorView(event);
+      } = estimateSensorView(event, androidSensorMode);
       const correctedAltitudeDeg =
         rawEstimatedAltitudeDeg === null
           ? null
@@ -1332,6 +1407,7 @@ function App() {
           alphaFallbackOffsetRef.current = null;
         }
         const horizonLikeAltitude = Math.abs(correctedAltitudeDeg) <= 10;
+        const androidLikeAzimuth = webkitHeading === null && !useAlphaFallback;
         const jumpThreshold =
           sensorProfile === 'manual_recommended'
             ? 25
@@ -1339,6 +1415,7 @@ function App() {
               ? 35
               : 55;
         if (
+          (!androidLikeAzimuth || androidSensorMode === 'a') &&
           horizonLikeAltitude &&
           Math.abs(shortestAzimuthDelta(nextEstimatedAzimuthDeg, previous.azimuthDeg)) > jumpThreshold
         ) {
@@ -1348,32 +1425,43 @@ function App() {
         // Keep heading responsive even at steep device angles. When iOS
         // webkitCompassHeading becomes sticky, the alpha fallback is offset to
         // the current view so source changes stay continuous.
-        const androidLikeAzimuth = webkitHeading === null && !useAlphaFallback;
         const steadyHorizonAzimuth = androidLikeAzimuth && horizonLikeAltitude;
-        const azimuthSmoothing =
-          sensorProfile === 'manual_recommended'
+        const azimuthSmoothing = androidLikeAzimuth && androidSensorMode === 'b'
+          ? steadyHorizonAzimuth ? 0.16 : 0.22
+          : androidLikeAzimuth && androidSensorMode === 'c'
+            ? steadyHorizonAzimuth ? 0.24 : 0.32
+            : sensorProfile === 'manual_recommended'
             ? steadyHorizonAzimuth ? 0.04 : 0.06
             : sensorProfile === 'android_unstable'
               ? steadyHorizonAzimuth ? 0.07 : 0.1
               : sensorProfile === 'android_stable'
                 ? steadyHorizonAzimuth ? 0.1 : 0.18
                 : steadyHorizonAzimuth ? 0.12 : 0.24;
-        const maxAzimuthStep =
-          sensorProfile === 'manual_recommended'
+        const maxAzimuthStep = androidLikeAzimuth && androidSensorMode === 'b'
+          ? steadyHorizonAzimuth ? 10 : 16
+          : androidLikeAzimuth && androidSensorMode === 'c'
+            ? steadyHorizonAzimuth ? 18 : 26
+            : sensorProfile === 'manual_recommended'
             ? steadyHorizonAzimuth ? 1.5 : 2.5
             : sensorProfile === 'android_unstable'
               ? steadyHorizonAzimuth ? 3 : 5
               : sensorProfile === 'android_stable'
                 ? steadyHorizonAzimuth ? 5 : 10
                 : steadyHorizonAzimuth ? 6 : 18;
-        const altitudeSmoothing =
-          sensorProfile === 'manual_recommended'
+        const altitudeSmoothing = androidLikeAzimuth && androidSensorMode === 'b'
+          ? 0.22
+          : androidLikeAzimuth && androidSensorMode === 'c'
+            ? 0.32
+            : sensorProfile === 'manual_recommended'
             ? 0.12
             : sensorProfile === 'android_unstable'
               ? 0.18
               : 0.24;
-        const maxAltitudeStep =
-          sensorProfile === 'manual_recommended'
+        const maxAltitudeStep = androidLikeAzimuth && androidSensorMode === 'b'
+          ? 10
+          : androidLikeAzimuth && androidSensorMode === 'c'
+            ? 16
+            : sensorProfile === 'manual_recommended'
             ? 4
             : sensorProfile === 'android_unstable'
               ? 7
@@ -1406,7 +1494,7 @@ function App() {
       window.removeEventListener('deviceorientation', handleRelativeOrientation, true);
       window.removeEventListener('deviceorientationabsolute', handleAbsoluteOrientation, true);
     };
-  }, [invertSensorAltitude, sensorModeEnabled, sensorProbe.permissionState]);
+  }, [androidSensorMode, invertSensorAltitude, sensorModeEnabled, sensorProbe.permissionState]);
 
   useEffect(() => {
     if (sessionRole !== 'host' || shareMode !== 'target') return;
@@ -1740,11 +1828,13 @@ function App() {
                 showAltitudeGuide={showAltitudeGuide}
                 betaFeaturesEnabled={betaFeaturesEnabled}
                 sensorProbe={sensorProbe}
+                androidSensorMode={androidSensorMode}
                 invertSensorAltitude={invertSensorAltitude}
                 onNightModeChange={setNightMode}
                 onShowAuroraChange={setShowAurora}
                 onShowAltitudeGuideChange={setShowAltitudeGuide}
                 onBetaFeaturesEnabledChange={setBetaFeaturesEnabled}
+                onAndroidSensorModeChange={setAndroidSensorMode}
                 onInvertSensorAltitudeChange={setInvertSensorAltitude}
               />
             )}
@@ -2335,11 +2425,13 @@ function SettingsPage({
   showAltitudeGuide,
   betaFeaturesEnabled,
   sensorProbe,
+  androidSensorMode,
   invertSensorAltitude,
   onNightModeChange,
   onShowAuroraChange,
   onShowAltitudeGuideChange,
   onBetaFeaturesEnabledChange,
+  onAndroidSensorModeChange,
   onInvertSensorAltitudeChange,
 }: {
   nightMode: boolean;
@@ -2347,11 +2439,13 @@ function SettingsPage({
   showAltitudeGuide: boolean;
   betaFeaturesEnabled: boolean;
   sensorProbe: SensorProbeState;
+  androidSensorMode: AndroidSensorMode;
   invertSensorAltitude: boolean;
   onNightModeChange: (enabled: boolean) => void;
   onShowAuroraChange: (enabled: boolean) => void;
   onShowAltitudeGuideChange: (enabled: boolean) => void;
   onBetaFeaturesEnabledChange: (enabled: boolean) => void;
+  onAndroidSensorModeChange: (mode: AndroidSensorMode) => void;
   onInvertSensorAltitudeChange: (enabled: boolean) => void;
 }) {
   const [adminPasscode, setAdminPasscode] = useState('');
@@ -2400,6 +2494,21 @@ function SettingsPage({
           checked={invertSensorAltitude}
           onChange={(event) => onInvertSensorAltitudeChange(event.target.checked)}
         />
+      </label>
+
+      <label className="setting-row">
+        <span>
+          <strong>Android方位方式</strong>
+          <small>Android端末だけに適用します</small>
+        </span>
+        <select
+          value={androidSensorMode}
+          onChange={(event) => onAndroidSensorModeChange(event.target.value as AndroidSensorMode)}
+        >
+          <option value="a">A</option>
+          <option value="b">B</option>
+          <option value="c">C</option>
+        </select>
       </label>
 
       <label className="toggle-row">
@@ -2476,6 +2585,10 @@ function SettingsPage({
             <div>
               <span>補正</span>
               <strong>{getSensorProfileLabel(sensorProbe.sensorProfile)}</strong>
+            </div>
+            <div>
+              <span>Android方式</span>
+              <strong>{androidSensorMode.toUpperCase()}</strong>
             </div>
             <div>
               <span>event</span>
