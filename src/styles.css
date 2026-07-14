@@ -146,6 +146,12 @@ input:not([type="checkbox"]):not([type="radio"]) {
 .splash-shell {
   grid-template-rows: minmax(0, 1fr);
   place-items: center;
+  opacity: 1;
+  transition: opacity 320ms ease;
+}
+
+.splash-shell.leaving {
+  opacity: 0;
 }
 
 .splash-card {
@@ -2016,6 +2022,10 @@ input:not([type="checkbox"]):not([type="radio"]) {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .splash-shell {
+    transition-duration: 1ms;
+  }
+
   .sheet-layer,
   .sheet-layer.closing,
   .bottom-sheet,

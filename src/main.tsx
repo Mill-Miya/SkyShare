@@ -56,6 +56,7 @@ const FALLBACK_LOCATION: ObserverLocation = {
 const SHEET_ANIMATION_MS = 220;
 const VIEW_ANIMATION_MS = 720;
 const SPLASH_MIN_MS = 1500;
+const SPLASH_FADE_MS = 320;
 const POINTER_SEND_INTERVAL_MS = 50;
 const POINTER_SEND_MIN_DELTA_DEG = 0.2;
 const POINTER_DISPLAY_SMOOTHING = 0.38;
@@ -678,6 +679,7 @@ function SkyCanvas({
 
 function App() {
   const [splashVisible, setSplashVisible] = useState(true);
+  const [splashLeaving, setSplashLeaving] = useState(false);
   const [location, setLocation] = useState<ObserverLocation | null>(null);
   const [locationStatus, setLocationStatus] = useState('位置情報を取得中');
   const [time, setTime] = useState(() => new Date());
@@ -743,8 +745,17 @@ function App() {
   const debug = useMemo(() => new URLSearchParams(window.location.search).get('debug') === '1', []);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setSplashVisible(false), SPLASH_MIN_MS);
-    return () => window.clearTimeout(timer);
+    let hideTimer: number | null = null;
+    const startFadeTimer = window.setTimeout(() => {
+      setSplashLeaving(true);
+      hideTimer = window.setTimeout(() => setSplashVisible(false), SPLASH_FADE_MS);
+    }, SPLASH_MIN_MS);
+    return () => {
+      window.clearTimeout(startFadeTimer);
+      if (hideTimer !== null) {
+        window.clearTimeout(hideTimer);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -1641,7 +1652,7 @@ function App() {
   const hostPointerGuidance = hostPointerPosition ? calculateGuidance(hostPointerPosition, view) : null;
 
   if (splashVisible) {
-    return <SplashScreen nightMode={nightMode} uiMode={uiMode} />;
+    return <SplashScreen nightMode={nightMode} uiMode={uiMode} leaving={splashLeaving} />;
   }
 
   if (guestJoinGate.status === 'rejected') {
@@ -1882,9 +1893,9 @@ function App() {
   );
 }
 
-function SplashScreen({ nightMode, uiMode }: { nightMode: boolean; uiMode: UiMode }) {
+function SplashScreen({ nightMode, uiMode, leaving }: { nightMode: boolean; uiMode: UiMode; leaving: boolean }) {
   return (
-    <main className={`app-shell splash-shell ${nightMode ? 'night-mode' : ''}`} data-ui-mode={uiMode}>
+    <main className={`app-shell splash-shell ${nightMode ? 'night-mode' : ''} ${leaving ? 'leaving' : ''}`} data-ui-mode={uiMode}>
       <section className="splash-card" aria-live="polite">
         <h1>Sorava</h1>
         <p>観望会支援システム</p>
