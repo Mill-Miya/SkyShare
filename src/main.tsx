@@ -65,6 +65,7 @@ const POINTER_DISPLAY_MAX_STEP_DEG = 12;
 const DEFAULT_PUBLIC_API_BASE_URL = 'https://skyshare-nhcb.onrender.com';
 const DEFAULT_PUBLIC_WS_URL = 'wss://skyshare-nhcb.onrender.com/ws';
 const SENSOR_INVERT_ALTITUDE_KEY = 'sorava.sensor.invertAltitude.v3';
+const SKY_GRID_LINES_KEY = 'sorava.sky.gridLines.v1';
 const UI_THEME_STORAGE_KEY = 'sorava-ui-theme';
 const DEFAULT_SENSOR_INVERT_ALTITUDE = true;
 const SETTINGS_ADMIN_PASSCODE = 'sorava';
@@ -147,9 +148,9 @@ function readStoredBoolean(key: string, fallback: boolean) {
 function readStoredAndroidSensorMode(): AndroidSensorMode {
   try {
     const storedValue = window.localStorage.getItem(ANDROID_SENSOR_MODE_KEY);
-    return storedValue === 'b' || storedValue === 'c' ? storedValue : 'a';
+    return storedValue === 'a' || storedValue === 'c' ? storedValue : 'b';
   } catch {
-    return 'a';
+    return 'b';
   }
 }
 
@@ -314,7 +315,9 @@ function estimateSensorView(event: DeviceOrientationEvent, androidSensorMode: An
   const preferAlphaAtSteepAngle =
     webkitAzimuthDeg !== null && beta !== null && Math.abs(beta) > 120 && alphaDirectAzimuthDeg !== null;
   const androidAzimuthDeg =
-    androidSensorMode === 'c' && alphaDirectAzimuthDeg !== null ? alphaDirectAzimuthDeg : alphaInverseAzimuthDeg;
+    (androidSensorMode === 'b' || androidSensorMode === 'c') && alphaDirectAzimuthDeg !== null
+      ? alphaDirectAzimuthDeg
+      : alphaInverseAzimuthDeg;
   const estimatedAzimuthDeg = preferAlphaAtSteepAngle
     ? alphaDirectAzimuthDeg
     : webkitAzimuthDeg ?? androidAzimuthDeg;
@@ -357,8 +360,8 @@ function estimateSensorView(event: DeviceOrientationEvent, androidSensorMode: An
   } satisfies EstimatedSensorView;
 }
 
-function limitedSensorStep(delta: number, smoothing: number, maxStepDeg: number) {
-  if (Math.abs(delta) < 0.12) return 0;
+function limitedSensorStep(delta: number, smoothing: number, maxStepDeg: number, deadbandDeg = 0.12) {
+  if (Math.abs(delta) < deadbandDeg) return 0;
   return clamp(delta * smoothing, -maxStepDeg, maxStepDeg);
 }
 
@@ -371,6 +374,7 @@ function SkyCanvas({
   sunPosition,
   sunAltitudeDeg,
   showAurora,
+  showGridLines,
   showAltitudeGuide,
   sensorModeEnabled,
   showHostPointerCenter,
@@ -388,6 +392,7 @@ function SkyCanvas({
   sunPosition: SunPosition | null;
   sunAltitudeDeg: number | null;
   showAurora: boolean;
+  showGridLines: boolean;
   showAltitudeGuide: boolean;
   sensorModeEnabled: boolean;
   showHostPointerCenter: boolean;
@@ -434,6 +439,43 @@ function SkyCanvas({
     drawSkyBrightnessBackground(context, width, height, sunAltitudeDeg, nightMode);
 
     const horizonY = centerY + view.centerAltitudeDeg * pxPerDeg;
+
+    if (showGridLines) {
+      context.save();
+      const gridColor = nightMode ? 'rgba(255, 92, 74, 0.16)' : 'rgba(225, 238, 228, 0.16)';
+      const labelColor = nightMode ? 'rgba(255, 123, 107, 0.34)' : 'rgba(225, 238, 228, 0.34)';
+      context.strokeStyle = gridColor;
+      context.fillStyle = labelColor;
+      context.lineWidth = 1;
+      context.font = '600 10px system-ui, sans-serif';
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.setLineDash([4, 9]);
+
+      for (let offset = -180; offset <= 180; offset += 15) {
+        if (offset === 0) continue;
+        const x = centerX + offset * pxPerDeg;
+        if (x < -2 || x > width + 2) continue;
+        context.beginPath();
+        context.moveTo(x, 0);
+        context.lineTo(x, height);
+        context.stroke();
+      }
+
+      for (let altitudeDeg = -60; altitudeDeg <= 90; altitudeDeg += 15) {
+        if (altitudeDeg === 0) continue;
+        const y = centerY - (altitudeDeg - view.centerAltitudeDeg) * pxPerDeg;
+        if (y < -2 || y > height + 2) continue;
+        context.beginPath();
+        context.moveTo(0, y);
+        context.lineTo(width, y);
+        context.stroke();
+        if (altitudeDeg > 0 && y > 12 && y < height - 12) {
+          context.fillText(`${altitudeDeg}°`, width - 22, y);
+        }
+      }
+      context.restore();
+    }
 
     drawStars(context, width, height, view, pxPerDeg, stars, nightMode);
     drawAurora(context, width, height, horizonY, view, nightMode, showAurora);
@@ -596,7 +638,7 @@ function SkyCanvas({
       context.stroke();
       context.restore();
     }
-  }, [debug, nightMode, onMetricsChange, positions, selectedTargetId, showAltitudeGuide, showAurora, showHostPointerCenter, stars, sunAltitudeDeg, sunPosition, view]);
+  }, [debug, nightMode, onMetricsChange, positions, selectedTargetId, showAltitudeGuide, showAurora, showGridLines, showHostPointerCenter, stars, sunAltitudeDeg, sunPosition, view]);
 
   function getPointerInfo() {
     const pointers = [...gestureRef.current.pointers.values()];
@@ -706,6 +748,7 @@ function App() {
   const [uiMode, setUiMode] = useState<UiMode>(() => readStoredUiMode());
   const [nightMode, setNightMode] = useState(false);
   const [showAurora, setShowAurora] = useState(false);
+  const [showGridLines, setShowGridLines] = useState(() => readStoredBoolean(SKY_GRID_LINES_KEY, false));
   const [showAltitudeGuide, setShowAltitudeGuide] = useState(true);
   const [manualTimeEnabled, setManualTimeEnabled] = useState(false);
   const [sensorModeEnabled, setSensorModeEnabled] = useState(false);
@@ -789,6 +832,14 @@ function App() {
     alphaFallbackOffsetRef.current = null;
     sensorProfileStatsRef.current = initialSensorProfileStats();
   }, [androidSensorMode]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SKY_GRID_LINES_KEY, String(showGridLines));
+    } catch {
+      // The grid setting still applies for the current page.
+    }
+  }, [showGridLines]);
 
   function clearSheetCloseTimer() {
     if (sheetCloseTimerRef.current !== null) {
@@ -1497,10 +1548,10 @@ function App() {
             : sensorProfile === 'android_unstable'
               ? 35
               : 55;
+        const rawAzimuthJumpDeg = Math.abs(shortestAzimuthDelta(nextEstimatedAzimuthDeg, previous.azimuthDeg));
         if (
-          (!androidLikeAzimuth || androidSensorMode === 'a') &&
-          horizonLikeAltitude &&
-          Math.abs(shortestAzimuthDelta(nextEstimatedAzimuthDeg, previous.azimuthDeg)) > jumpThreshold
+          ((!androidLikeAzimuth || androidSensorMode === 'a') && horizonLikeAltitude && rawAzimuthJumpDeg > jumpThreshold) ||
+          (androidLikeAzimuth && androidSensorMode === 'b' && rawAzimuthJumpDeg > (horizonLikeAltitude ? 42 : 70))
         ) {
           nextEstimatedAzimuthDeg = previous.azimuthDeg;
         }
@@ -1510,7 +1561,7 @@ function App() {
         // the current view so source changes stay continuous.
         const steadyHorizonAzimuth = androidLikeAzimuth && horizonLikeAltitude;
         const azimuthSmoothing = androidLikeAzimuth && androidSensorMode === 'b'
-          ? steadyHorizonAzimuth ? 0.16 : 0.22
+          ? steadyHorizonAzimuth ? 0.1 : 0.16
           : androidLikeAzimuth && androidSensorMode === 'c'
             ? steadyHorizonAzimuth ? 0.24 : 0.32
             : sensorProfile === 'manual_recommended'
@@ -1521,7 +1572,7 @@ function App() {
                 ? steadyHorizonAzimuth ? 0.1 : 0.18
                 : steadyHorizonAzimuth ? 0.12 : 0.24;
         const maxAzimuthStep = androidLikeAzimuth && androidSensorMode === 'b'
-          ? steadyHorizonAzimuth ? 10 : 16
+          ? steadyHorizonAzimuth ? 5 : 10
           : androidLikeAzimuth && androidSensorMode === 'c'
             ? steadyHorizonAzimuth ? 18 : 26
             : sensorProfile === 'manual_recommended'
@@ -1532,7 +1583,7 @@ function App() {
                 ? steadyHorizonAzimuth ? 5 : 10
                 : steadyHorizonAzimuth ? 6 : 18;
         const altitudeSmoothing = androidLikeAzimuth && androidSensorMode === 'b'
-          ? 0.22
+          ? 0.18
           : androidLikeAzimuth && androidSensorMode === 'c'
             ? 0.32
             : sensorProfile === 'manual_recommended'
@@ -1541,7 +1592,7 @@ function App() {
               ? 0.18
               : 0.24;
         const maxAltitudeStep = androidLikeAzimuth && androidSensorMode === 'b'
-          ? 10
+          ? 7
           : androidLikeAzimuth && androidSensorMode === 'c'
             ? 16
             : sensorProfile === 'manual_recommended'
@@ -1553,8 +1604,14 @@ function App() {
           azimuthDeltaDeg,
           azimuthSmoothing,
           maxAzimuthStep,
+          androidLikeAzimuth && androidSensorMode === 'b' ? 0.45 : 0.12,
         );
-        const altitudeStep = limitedSensorStep(correctedAltitudeDeg - previous.altitudeDeg, altitudeSmoothing, maxAltitudeStep);
+        const altitudeStep = limitedSensorStep(
+          correctedAltitudeDeg - previous.altitudeDeg,
+          altitudeSmoothing,
+          maxAltitudeStep,
+          androidLikeAzimuth && androidSensorMode === 'b' ? 0.35 : 0.12,
+        );
         const nextAzimuthDeg = normalizeAzimuth(
           previous.azimuthDeg + azimuthStep,
         );
@@ -1757,6 +1814,7 @@ function App() {
           sunPosition={sunPosition}
           sunAltitudeDeg={sunPosition?.altitudeDeg ?? null}
           showAurora={showAurora}
+          showGridLines={showGridLines}
           showAltitudeGuide={showAltitudeGuide}
           sensorModeEnabled={sensorModeEnabled}
           showHostPointerCenter={sessionRole === 'host' && shareMode === 'pointer'}
@@ -1927,12 +1985,14 @@ function App() {
               <SettingsPage
                 nightMode={nightMode}
                 showAurora={showAurora}
+                showGridLines={showGridLines}
                 showAltitudeGuide={showAltitudeGuide}
                 sensorProbe={sensorProbe}
                 androidSensorMode={androidSensorMode}
                 invertSensorAltitude={invertSensorAltitude}
                 onNightModeChange={setNightMode}
                 onShowAuroraChange={setShowAurora}
+                onShowGridLinesChange={setShowGridLines}
                 onShowAltitudeGuideChange={setShowAltitudeGuide}
                 onAndroidSensorModeChange={setAndroidSensorMode}
                 onInvertSensorAltitudeChange={setInvertSensorAltitude}
@@ -2549,24 +2609,28 @@ function SessionPage({
 function SettingsPage({
   nightMode,
   showAurora,
+  showGridLines,
   showAltitudeGuide,
   sensorProbe,
   androidSensorMode,
   invertSensorAltitude,
   onNightModeChange,
   onShowAuroraChange,
+  onShowGridLinesChange,
   onShowAltitudeGuideChange,
   onAndroidSensorModeChange,
   onInvertSensorAltitudeChange,
 }: {
   nightMode: boolean;
   showAurora: boolean;
+  showGridLines: boolean;
   showAltitudeGuide: boolean;
   sensorProbe: SensorProbeState;
   androidSensorMode: AndroidSensorMode;
   invertSensorAltitude: boolean;
   onNightModeChange: (enabled: boolean) => void;
   onShowAuroraChange: (enabled: boolean) => void;
+  onShowGridLinesChange: (enabled: boolean) => void;
   onShowAltitudeGuideChange: (enabled: boolean) => void;
   onAndroidSensorModeChange: (mode: AndroidSensorMode) => void;
   onInvertSensorAltitudeChange: (enabled: boolean) => void;
@@ -2640,6 +2704,18 @@ function SettingsPage({
           <small>空の雰囲気を少し残します</small>
         </span>
         <input type="checkbox" checked={showAurora} onChange={(event) => onShowAuroraChange(event.target.checked)} />
+      </label>
+
+      <label className="toggle-row">
+        <span>
+          <strong>グリッド線</strong>
+          <small>方位と高度の目安を薄く表示します</small>
+        </span>
+        <input
+          type="checkbox"
+          checked={showGridLines}
+          onChange={(event) => onShowGridLinesChange(event.target.checked)}
+        />
       </label>
 
       {!adminUnlocked && (

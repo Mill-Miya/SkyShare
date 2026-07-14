@@ -144,6 +144,7 @@ This file records implementation work and notable design changes so progress can
 - Hid the pointer guidance reticle and red diamond on the Host side while keeping the Host direction guidance visible for Guests.
 - Allowed Guests to use their own local target guidance while joined to a session only when Host sharing is OFF, with Host target/pointer sharing clearing the Guest local selection for Host-priority behavior.
 - Added Host observation-time sync for sessions: Hosts send only a time baseline, and Guests use that Host time for local sky/target calculations without sharing GPS, orientation, or server-side astronomy.
+- Tuned Android Sensor Mode B as the preferred field mode by switching its heading calculation to direct alpha, reducing jitter, suppressing large heading jumps, and adding an optional Sky grid line overlay from Settings.
 
 ## Ongoing Rule
 
