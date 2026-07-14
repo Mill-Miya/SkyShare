@@ -478,9 +478,7 @@ function SkyCanvas({
       const daylightGridStrength = sunAltitudeDeg === null ? 0 : clamp((sunAltitudeDeg + 6) / 18, 0, 1);
       const gridColor = nightMode
         ? 'rgba(255, 92, 74, 0.18)'
-        : daylightGridStrength > 0
-          ? `rgba(20, 38, 56, ${0.16 + daylightGridStrength * 0.16})`
-          : 'rgba(225, 238, 228, 0.18)';
+        : `rgba(255, 255, 255, ${0.2 + daylightGridStrength * 0.18})`;
       context.lineWidth = daylightGridStrength > 0.45 && !nightMode ? 1.15 : 1;
       context.strokeStyle = gridColor;
       context.setLineDash([]);

@@ -150,6 +150,7 @@ This file records implementation work and notable design changes so progress can
 - Refined the Sky grid overlay into a sparse solid sphere frame, removing dotted strokes that appeared to drift during motion.
 - Tightened the optional Sky sphere grid spacing while keeping solid projected lines.
 - Improved daytime visibility of the optional Sky sphere grid by switching to a darker high-contrast line color as Sun altitude rises.
+- Changed the optional Sky sphere grid back to white tones, increasing opacity in daylight while preserving night-mode red.
 
 ## Ongoing Rule
 
