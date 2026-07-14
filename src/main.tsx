@@ -436,41 +436,83 @@ function SkyCanvas({
     drawSkyBrightnessBackground(context, width, height, sunAltitudeDeg, nightMode);
 
     const horizonY = centerY + view.centerAltitudeDeg * pxPerDeg;
+    const toRad = (degrees: number) => (degrees * Math.PI) / 180;
+    const centerAzRad = toRad(view.centerAzimuthDeg);
+    const centerAltRad = toRad(view.centerAltitudeDeg);
+    const centerVector = {
+      x: Math.sin(centerAzRad) * Math.cos(centerAltRad),
+      y: Math.cos(centerAzRad) * Math.cos(centerAltRad),
+      z: Math.sin(centerAltRad),
+    };
+    const rightVector = {
+      x: Math.cos(centerAzRad),
+      y: -Math.sin(centerAzRad),
+      z: 0,
+    };
+    const upVector = {
+      x: rightVector.y * centerVector.z - rightVector.z * centerVector.y,
+      y: rightVector.z * centerVector.x - rightVector.x * centerVector.z,
+      z: rightVector.x * centerVector.y - rightVector.y * centerVector.x,
+    };
+    const focalLength = width / (2 * Math.tan(toRad(horizontalFovDeg) / 2));
+    const projectAltAz = (azimuthDeg: number, altitudeDeg: number) => {
+      const azimuthRad = toRad(normalizeAzimuth(azimuthDeg));
+      const altitudeRad = toRad(altitudeDeg);
+      const vector = {
+        x: Math.sin(azimuthRad) * Math.cos(altitudeRad),
+        y: Math.cos(azimuthRad) * Math.cos(altitudeRad),
+        z: Math.sin(altitudeRad),
+      };
+      const depth = vector.x * centerVector.x + vector.y * centerVector.y + vector.z * centerVector.z;
+      if (depth <= 0.05) return null;
+      const right = vector.x * rightVector.x + vector.y * rightVector.y + vector.z * rightVector.z;
+      const up = vector.x * upVector.x + vector.y * upVector.y + vector.z * upVector.z;
+      return {
+        x: centerX + (right / depth) * focalLength,
+        y: centerY - (up / depth) * focalLength,
+      };
+    };
 
     if (showGridLines) {
       context.save();
-      const gridColor = nightMode ? 'rgba(255, 92, 74, 0.16)' : 'rgba(225, 238, 228, 0.16)';
-      const labelColor = nightMode ? 'rgba(255, 123, 107, 0.34)' : 'rgba(225, 238, 228, 0.34)';
-      context.strokeStyle = gridColor;
-      context.fillStyle = labelColor;
+      const gridColor = nightMode ? 'rgba(255, 92, 74, 0.18)' : 'rgba(225, 238, 228, 0.18)';
       context.lineWidth = 1;
-      context.font = '600 10px system-ui, sans-serif';
-      context.textAlign = 'center';
-      context.textBaseline = 'middle';
-      context.setLineDash([4, 9]);
+      context.strokeStyle = gridColor;
+      context.setLineDash([4, 10]);
 
-      for (let offset = -180; offset <= 180; offset += 15) {
-        if (offset === 0) continue;
-        const x = centerX + offset * pxPerDeg;
-        if (x < -2 || x > width + 2) continue;
+      const strokeProjectedLine = (points: Array<{ x: number; y: number } | null>) => {
+        let drawing = false;
         context.beginPath();
-        context.moveTo(x, 0);
-        context.lineTo(x, height);
+        points.forEach((point) => {
+          if (!point || point.x < -width * 0.35 || point.x > width * 1.35 || point.y < -height * 0.35 || point.y > height * 1.35) {
+            drawing = false;
+            return;
+          }
+          if (!drawing) {
+            context.moveTo(point.x, point.y);
+            drawing = true;
+            return;
+          }
+          context.lineTo(point.x, point.y);
+        });
         context.stroke();
-      }
+      };
 
-      for (let altitudeDeg = -60; altitudeDeg <= 90; altitudeDeg += 15) {
-        if (altitudeDeg === 0) continue;
-        const y = centerY - (altitudeDeg - view.centerAltitudeDeg) * pxPerDeg;
-        if (y < -2 || y > height + 2) continue;
-        context.beginPath();
-        context.moveTo(0, y);
-        context.lineTo(width, y);
-        context.stroke();
-        if (altitudeDeg > 0 && y > 12 && y < height - 12) {
-          context.fillText(`${altitudeDeg}°`, width - 22, y);
+      for (let azimuthDeg = 0; azimuthDeg < 360; azimuthDeg += 15) {
+        const points = [];
+        for (let altitudeDeg = -30; altitudeDeg <= 90; altitudeDeg += 4) {
+          points.push(projectAltAz(azimuthDeg, altitudeDeg));
         }
+        strokeProjectedLine(points);
       }
+
+      [15, 30, 45, 60, 75].forEach((altitudeDeg) => {
+        const points = [];
+        for (let offsetDeg = -180; offsetDeg <= 180; offsetDeg += 4) {
+          points.push(projectAltAz(view.centerAzimuthDeg + offsetDeg, altitudeDeg));
+        }
+        strokeProjectedLine(points);
+      });
       context.restore();
     }
 
@@ -487,43 +529,6 @@ function SkyCanvas({
     if (showAltitudeGuide && debug) {
       const guideColor = nightMode ? 'rgba(255, 92, 74, 0.28)' : 'rgba(190, 223, 242, 0.26)';
       const labelColor = nightMode ? 'rgba(255, 123, 107, 0.66)' : 'rgba(222, 242, 230, 0.66)';
-      const toRad = (degrees: number) => (degrees * Math.PI) / 180;
-      const centerAzRad = toRad(view.centerAzimuthDeg);
-      const centerAltRad = toRad(view.centerAltitudeDeg);
-      const centerVector = {
-        x: Math.sin(centerAzRad) * Math.cos(centerAltRad),
-        y: Math.cos(centerAzRad) * Math.cos(centerAltRad),
-        z: Math.sin(centerAltRad),
-      };
-      const rightVector = {
-        x: Math.cos(centerAzRad),
-        y: -Math.sin(centerAzRad),
-        z: 0,
-      };
-      const upVector = {
-        x: rightVector.y * centerVector.z - rightVector.z * centerVector.y,
-        y: rightVector.z * centerVector.x - rightVector.x * centerVector.z,
-        z: rightVector.x * centerVector.y - rightVector.y * centerVector.x,
-      };
-      const focalLength = width / (2 * Math.tan(toRad(horizontalFovDeg) / 2));
-      const projectAltAz = (azimuthDeg: number, altitudeDeg: number) => {
-        const azimuthRad = toRad(normalizeAzimuth(azimuthDeg));
-        const altitudeRad = toRad(altitudeDeg);
-        const vector = {
-          x: Math.sin(azimuthRad) * Math.cos(altitudeRad),
-          y: Math.cos(azimuthRad) * Math.cos(altitudeRad),
-          z: Math.sin(altitudeRad),
-        };
-        const depth =
-          vector.x * centerVector.x + vector.y * centerVector.y + vector.z * centerVector.z;
-        if (depth <= 0.05) return null;
-        const right = vector.x * rightVector.x + vector.y * rightVector.y + vector.z * rightVector.z;
-        const up = vector.x * upVector.x + vector.y * upVector.y + vector.z * upVector.z;
-        return {
-          x: centerX + (right / depth) * focalLength,
-          y: centerY - (up / depth) * focalLength,
-        };
-      };
 
       context.save();
       context.setLineDash([]);
