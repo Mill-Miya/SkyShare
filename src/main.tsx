@@ -704,7 +704,6 @@ function App() {
   const [nightMode, setNightMode] = useState(false);
   const [showAurora, setShowAurora] = useState(false);
   const [showAltitudeGuide, setShowAltitudeGuide] = useState(true);
-  const [betaFeaturesEnabled, setBetaFeaturesEnabled] = useState(false);
   const [manualTimeEnabled, setManualTimeEnabled] = useState(false);
   const [sensorModeEnabled, setSensorModeEnabled] = useState(false);
   const [sensorProbe, setSensorProbe] = useState<SensorProbeState>(() => initialSensorProbe());
@@ -1730,7 +1729,7 @@ function App() {
         >
           {sensorModeEnabled ? '追従' : '手動'}
         </button>
-        {sessionRole === 'none' && betaFeaturesEnabled && (
+        {sessionRole === 'none' && (
           <div className="time-controls" aria-label="観望時刻">
             <div className="time-controls-label">
               <span>{manualTimeEnabled ? '手動時刻' : '現在時刻'}</span>
@@ -1859,14 +1858,12 @@ function App() {
                 nightMode={nightMode}
                 showAurora={showAurora}
                 showAltitudeGuide={showAltitudeGuide}
-                betaFeaturesEnabled={betaFeaturesEnabled}
                 sensorProbe={sensorProbe}
                 androidSensorMode={androidSensorMode}
                 invertSensorAltitude={invertSensorAltitude}
                 onNightModeChange={setNightMode}
                 onShowAuroraChange={setShowAurora}
                 onShowAltitudeGuideChange={setShowAltitudeGuide}
-                onBetaFeaturesEnabledChange={setBetaFeaturesEnabled}
                 onAndroidSensorModeChange={setAndroidSensorMode}
                 onInvertSensorAltitudeChange={setInvertSensorAltitude}
               />
@@ -2483,28 +2480,24 @@ function SettingsPage({
   nightMode,
   showAurora,
   showAltitudeGuide,
-  betaFeaturesEnabled,
   sensorProbe,
   androidSensorMode,
   invertSensorAltitude,
   onNightModeChange,
   onShowAuroraChange,
   onShowAltitudeGuideChange,
-  onBetaFeaturesEnabledChange,
   onAndroidSensorModeChange,
   onInvertSensorAltitudeChange,
 }: {
   nightMode: boolean;
   showAurora: boolean;
   showAltitudeGuide: boolean;
-  betaFeaturesEnabled: boolean;
   sensorProbe: SensorProbeState;
   androidSensorMode: AndroidSensorMode;
   invertSensorAltitude: boolean;
   onNightModeChange: (enabled: boolean) => void;
   onShowAuroraChange: (enabled: boolean) => void;
   onShowAltitudeGuideChange: (enabled: boolean) => void;
-  onBetaFeaturesEnabledChange: (enabled: boolean) => void;
   onAndroidSensorModeChange: (mode: AndroidSensorMode) => void;
   onInvertSensorAltitudeChange: (enabled: boolean) => void;
 }) {
@@ -2577,17 +2570,6 @@ function SettingsPage({
           <small>空の雰囲気を少し残します</small>
         </span>
         <input type="checkbox" checked={showAurora} onChange={(event) => onShowAuroraChange(event.target.checked)} />
-      </label>
-
-      <label className="toggle-row">
-        <span>
-          <strong>ベータ版を使用</strong>
-        </span>
-        <input
-          type="checkbox"
-          checked={betaFeaturesEnabled}
-          onChange={(event) => onBetaFeaturesEnabledChange(event.target.checked)}
-        />
       </label>
 
       {!adminUnlocked && (
