@@ -177,6 +177,37 @@ input:not([type="checkbox"]):not([type="radio"]) {
   color: rgba(255, 123, 107, 0.74);
 }
 
+.maintenance-countdown {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid rgba(244, 241, 223, 0.14);
+  border-radius: 8px;
+  color: rgba(244, 241, 223, 0.74);
+  background: rgba(244, 241, 223, 0.05);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.maintenance-countdown strong {
+  color: rgba(244, 241, 223, 0.96);
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.night-mode .maintenance-countdown {
+  border-color: rgba(255, 88, 68, 0.2);
+  color: rgba(255, 123, 107, 0.74);
+  background: rgba(80, 0, 0, 0.16);
+}
+
+.night-mode .maintenance-countdown strong {
+  color: #ff9a8d;
+}
+
 .guest-pass-form {
   display: grid;
   gap: 8px;

@@ -185,6 +185,16 @@ function isMaintenanceActive() {
   return Number.isFinite(MAINTENANCE_UNLOCK_AT_MS) && Date.now() < MAINTENANCE_UNLOCK_AT_MS;
 }
 
+function formatCountdown(ms: number) {
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds
+    .toString()
+    .padStart(2, '0')}`;
+}
+
 function getInitialGuestJoinGate(): GuestJoinGateState {
   const sessionId = getJoinSessionId();
   if (!isMaintenanceActive()) return { status: 'none', sessionId, error: null };
@@ -1634,6 +1644,7 @@ function App() {
         uiMode={uiMode}
         value={guestPassInput}
         error={guestJoinGate.error}
+        unlockAtMs={MAINTENANCE_UNLOCK_AT_MS}
         onChange={setGuestPassInput}
         onSubmit={submitGuestPass}
       />
@@ -1865,6 +1876,7 @@ function GuestPassGate({
   uiMode,
   value,
   error,
+  unlockAtMs,
   onChange,
   onSubmit,
 }: {
@@ -1872,14 +1884,28 @@ function GuestPassGate({
   uiMode: UiMode;
   value: string;
   error: string | null;
+  unlockAtMs: number;
   onChange: (value: string) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
 }) {
+  const [remainingMs, setRemainingMs] = useState(() => Math.max(0, unlockAtMs - Date.now()));
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setRemainingMs(Math.max(0, unlockAtMs - Date.now()));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [unlockAtMs]);
+
   return (
     <main className={`app-shell gate-shell ${nightMode ? 'night-mode' : ''}`} data-ui-mode={uiMode}>
       <section className="guest-gate-card">
         <h1>Sorava/SkyShare</h1>
         <p>メンテナンス中</p>
+        <div className="maintenance-countdown">
+          <span>終了まで</span>
+          <strong>{formatCountdown(remainingMs)}</strong>
+        </div>
         <form className="guest-pass-form" onSubmit={onSubmit}>
           <input
             type="password"
