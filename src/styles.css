@@ -143,6 +143,66 @@ input:not([type="checkbox"]):not([type="radio"]) {
   place-items: center;
 }
 
+.splash-shell {
+  grid-template-rows: minmax(0, 1fr);
+  place-items: center;
+}
+
+.splash-card {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  width: min(320px, calc(100% - 24px));
+  padding: 20px 18px;
+  border: 1px solid rgba(244, 241, 223, 0.12);
+  border-radius: 8px;
+  background: rgba(244, 241, 223, 0.05);
+}
+
+.splash-card h1,
+.splash-card p {
+  margin: 0;
+}
+
+.splash-card h1 {
+  font-size: 28px;
+  letter-spacing: 0.04em;
+}
+
+.splash-card p {
+  color: rgba(244, 241, 223, 0.72);
+  font-size: 14px;
+}
+
+.splash-loading {
+  margin-top: 8px;
+  color: rgba(244, 241, 223, 0.62);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  animation: splash-pulse 1.2s ease-in-out infinite;
+}
+
+.night-mode .splash-card {
+  border-color: rgba(255, 88, 68, 0.2);
+  background: rgba(80, 0, 0, 0.18);
+}
+
+.night-mode .splash-card p,
+.night-mode .splash-loading {
+  color: rgba(255, 123, 107, 0.72);
+}
+
+@keyframes splash-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 .guest-gate-card {
   display: grid;
   gap: 12px;

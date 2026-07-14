@@ -55,6 +55,7 @@ const FALLBACK_LOCATION: ObserverLocation = {
 
 const SHEET_ANIMATION_MS = 220;
 const VIEW_ANIMATION_MS = 720;
+const SPLASH_MIN_MS = 800;
 const POINTER_SEND_INTERVAL_MS = 50;
 const POINTER_SEND_MIN_DELTA_DEG = 0.2;
 const POINTER_DISPLAY_SMOOTHING = 0.38;
@@ -676,6 +677,7 @@ function SkyCanvas({
 }
 
 function App() {
+  const [splashVisible, setSplashVisible] = useState(true);
   const [location, setLocation] = useState<ObserverLocation | null>(null);
   const [locationStatus, setLocationStatus] = useState('位置情報を取得中');
   const [time, setTime] = useState(() => new Date());
@@ -739,6 +741,11 @@ function App() {
   const guestJoinBlocked = guestJoinGate.status === 'pass' || guestJoinGate.status === 'rejected';
 
   const debug = useMemo(() => new URLSearchParams(window.location.search).get('debug') === '1', []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSplashVisible(false), SPLASH_MIN_MS);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     try {
@@ -1633,6 +1640,10 @@ function App() {
       : null;
   const hostPointerGuidance = hostPointerPosition ? calculateGuidance(hostPointerPosition, view) : null;
 
+  if (splashVisible) {
+    return <SplashScreen nightMode={nightMode} uiMode={uiMode} />;
+  }
+
   if (guestJoinGate.status === 'rejected') {
     return <GuestRejectedScreen nightMode={nightMode} uiMode={uiMode} />;
   }
@@ -1867,6 +1878,18 @@ function App() {
           Settings
         </button>
       </nav>
+    </main>
+  );
+}
+
+function SplashScreen({ nightMode, uiMode }: { nightMode: boolean; uiMode: UiMode }) {
+  return (
+    <main className={`app-shell splash-shell ${nightMode ? 'night-mode' : ''}`} data-ui-mode={uiMode}>
+      <section className="splash-card" aria-live="polite">
+        <h1>Sorava</h1>
+        <p>観望会支援システム</p>
+        <div className="splash-loading">Loading...</div>
+      </section>
     </main>
   );
 }
