@@ -466,6 +466,29 @@ input:not([type="checkbox"]):not([type="radio"]) {
   background: rgba(80, 0, 0, 0.18);
 }
 
+.host-time-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 6;
+  max-width: min(260px, calc(100% - 92px));
+  padding: 7px 9px;
+  border: 1px solid rgba(244, 241, 223, 0.16);
+  border-radius: 8px;
+  color: rgba(244, 241, 223, 0.88);
+  background: rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(10px);
+  font-size: 11px;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+.night-mode .host-time-badge {
+  border-color: rgba(255, 88, 68, 0.24);
+  color: #ff9a8d;
+  background: rgba(18, 0, 0, 0.48);
+}
+
 .sensor-notice {
   position: absolute;
   top: 50px;
@@ -1793,6 +1816,14 @@ input:not([type="checkbox"]):not([type="radio"]) {
   .time-controls-actions button {
     min-height: 26px;
     padding: 3px 6px;
+  }
+
+  .host-time-badge {
+    top: 8px;
+    left: 8px;
+    max-width: min(228px, calc(100% - 76px));
+    padding: 6px 8px;
+    font-size: 10px;
   }
 
   .sensor-notice {

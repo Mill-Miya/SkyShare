@@ -70,7 +70,7 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? '')
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-/** @type {Map<string, { host: import('ws').WebSocket | null, guests: Set<import('ws').WebSocket>, targetId: string | null, shareMode: 'off' | 'target' | 'pointer', pointer: { azimuthDeg: number, altitudeDeg: number } | null, hostDisconnectTimer: NodeJS.Timeout | null, createdAt: number, lastActivityAt: number }>} */
+/** @type {Map<string, { host: import('ws').WebSocket | null, guests: Set<import('ws').WebSocket>, targetId: string | null, shareMode: 'off' | 'target' | 'pointer', pointer: { azimuthDeg: number, altitudeDeg: number } | null, timeSync: { baseObservationTimeIso: string, baseRealTimeMs: number } | null, hostDisconnectTimer: NodeJS.Timeout | null, createdAt: number, lastActivityAt: number }>} */
 const rooms = new Map();
 
 /** @type {Map<string, { windowStartedAt: number, count: number }>} */
@@ -185,6 +185,14 @@ function validatePointerMessage(message) {
   );
 }
 
+function validateTimeSyncMessage(message) {
+  if (typeof message.baseObservationTimeIso !== 'string') return false;
+  const observationMs = Date.parse(message.baseObservationTimeIso);
+  if (!Number.isFinite(observationMs)) return false;
+  if (typeof message.baseRealTimeMs !== 'number' || !Number.isFinite(message.baseRealTimeMs)) return false;
+  return message.baseRealTimeMs > 0;
+}
+
 function broadcastState(sessionId, room) {
   const message = {
     type: 'session:state',
@@ -192,6 +200,7 @@ function broadcastState(sessionId, room) {
     targetId: room.targetId,
     shareMode: room.shareMode,
     pointer: room.pointer,
+    timeSync: room.timeSync,
     participantCount: participantCount(room),
   };
 
@@ -215,6 +224,14 @@ function resolveTargetShareMode(message) {
 
 function broadcastPointer(sessionId, room, azimuthDeg, altitudeDeg) {
   const message = { type: 'pointer:update', azimuth: azimuthDeg, altitude: altitudeDeg };
+  room.guests.forEach((guest) => sendJson(guest, message));
+  if (room.host) sendJson(room.host, message);
+  broadcastState(sessionId, room);
+}
+
+function broadcastTimeSync(sessionId, room) {
+  if (!room.timeSync) return;
+  const message = { type: 'time:sync', ...room.timeSync };
   room.guests.forEach((guest) => sendJson(guest, message));
   if (room.host) sendJson(room.host, message);
   broadcastState(sessionId, room);
@@ -307,6 +324,7 @@ const server = http.createServer((request, response) => {
       targetId: null,
       shareMode: 'off',
       pointer: null,
+      timeSync: null,
       hostDisconnectTimer: null,
       createdAt: now,
       lastActivityAt: now,
@@ -448,6 +466,31 @@ wss.on('connection', (socket) => {
         altitudeDeg: message.altitude,
       };
       broadcastPointer(joinedSessionId, room, room.pointer.azimuthDeg, room.pointer.altitudeDeg);
+      return;
+    }
+
+    if (message.type === 'time:sync') {
+      if (!joinedSessionId || role !== 'host') {
+        sendJson(socket, { type: 'error', code: 'HOST_REQUIRED' });
+        return;
+      }
+
+      const room = rooms.get(joinedSessionId);
+      if (!room) {
+        sendJson(socket, { type: 'error', code: 'SESSION_NOT_FOUND' });
+        return;
+      }
+      if (!validateTimeSyncMessage(message)) {
+        sendJson(socket, { type: 'error', code: 'INVALID_TIME_SYNC' });
+        return;
+      }
+
+      touchRoom(room);
+      room.timeSync = {
+        baseObservationTimeIso: message.baseObservationTimeIso,
+        baseRealTimeMs: message.baseRealTimeMs,
+      };
+      broadcastTimeSync(joinedSessionId, room);
       return;
     }
 

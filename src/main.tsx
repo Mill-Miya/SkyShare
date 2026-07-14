@@ -28,6 +28,7 @@ import { calculateGuidance, formatDirection, getAltitudeStatus, getAltitudeStatu
 import type {
   ClientWsMessage,
   GuidanceState,
+  HostTimeSync,
   ObserverLocation,
   Page,
   ServerWsMessage,
@@ -691,6 +692,8 @@ function App() {
   const [shareMode, setShareMode] = useState<ShareMode>('off');
   const [sharedPointer, setSharedPointer] = useState<SharedPointer | null>(null);
   const [displayedSharedPointer, setDisplayedSharedPointer] = useState<SharedPointer | null>(null);
+  const [hostTimeSync, setHostTimeSync] = useState<HostTimeSync | null>(null);
+  const [hostTimeTick, setHostTimeTick] = useState(0);
   const [participantCount, setParticipantCount] = useState(0);
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'reconnecting'>('disconnected');
   const [joinUrl, setJoinUrl] = useState('');
@@ -881,6 +884,27 @@ function App() {
     }
   }
 
+  function createHostTimeSync(): HostTimeSync {
+    const base = manualTimeBaseRef.current;
+    if (base) {
+      return {
+        baseObservationTimeIso: new Date(base.observationMs).toISOString(),
+        baseRealTimeMs: base.realMs,
+      };
+    }
+    const now = Date.now();
+    return {
+      baseObservationTimeIso: new Date(now).toISOString(),
+      baseRealTimeMs: now,
+    };
+  }
+
+  function getSyncedHostTime(sync: HostTimeSync) {
+    const baseObservationMs = Date.parse(sync.baseObservationTimeIso);
+    if (!Number.isFinite(baseObservationMs) || !Number.isFinite(sync.baseRealTimeMs)) return time;
+    return new Date(baseObservationMs + (Date.now() - sync.baseRealTimeMs));
+  }
+
   function resetSessionState(notice: string | null = null) {
     clearReconnectTimer();
     reconnectRoleRef.current = 'none';
@@ -892,6 +916,7 @@ function App() {
     setSharedTargetId(null);
     setShareMode('off');
     setSharedPointer(null);
+    setHostTimeSync(null);
     setParticipantCount(0);
     setConnectionStatus('disconnected');
     setJoinUrl('');
@@ -929,6 +954,7 @@ function App() {
       setSharedTargetId(nextShareMode === 'pointer' ? null : message.targetId);
       setShareMode(nextShareMode);
       setSharedPointer(message.pointer ?? null);
+      setHostTimeSync(message.timeSync ?? null);
       if (nextShareMode === 'pointer') {
         setGuidanceSuppressed(false);
       }
@@ -966,6 +992,14 @@ function App() {
       return;
     }
 
+    if (message.type === 'time:sync') {
+      setHostTimeSync({
+        baseObservationTimeIso: message.baseObservationTimeIso,
+        baseRealTimeMs: message.baseRealTimeMs,
+      });
+      return;
+    }
+
     if (message.type === 'session:ended') {
       const notice =
         message.reason === 'host_disconnected'
@@ -1000,6 +1034,13 @@ function App() {
     socket.addEventListener('open', () => {
       setConnectionStatus('connected');
       sendSessionMessage({ type: role === 'host' ? 'host:join' : 'guest:join', sessionId: nextSessionId });
+      if (role === 'host') {
+        window.setTimeout(() => {
+          const nextTimeSync = createHostTimeSync();
+          setHostTimeSync(nextTimeSync);
+          sendSessionMessage({ type: 'time:sync', ...nextTimeSync });
+        }, 0);
+      }
       if (role === 'host' && shareMode === 'target') {
         window.setTimeout(
           () => sendSessionMessage({ type: 'target:update', targetId: selectedTargetId, shareMode: 'target' }),
@@ -1270,7 +1311,13 @@ function App() {
   function setCurrentTime() {
     manualTimeBaseRef.current = null;
     setManualTimeEnabled(false);
-    setTime(new Date());
+    const now = new Date();
+    setTime(now);
+    if (sessionRole === 'host') {
+      const nextTimeSync = { baseObservationTimeIso: now.toISOString(), baseRealTimeMs: now.getTime() };
+      setHostTimeSync(nextTimeSync);
+      sendSessionMessage({ type: 'time:sync', ...nextTimeSync });
+    }
   }
 
   function setObservationDateTime(value: string) {
@@ -1300,10 +1347,19 @@ function App() {
 
   useEffect(() => {
     if (sessionRole === 'none') return;
+    if (sessionRole === 'host') return;
     manualTimeBaseRef.current = null;
     setManualTimeEnabled(false);
     setTime(new Date());
   }, [sessionRole]);
+
+  useEffect(() => {
+    if (sessionRole !== 'guest' || !hostTimeSync) return;
+    const timer = window.setInterval(() => {
+      setHostTimeTick((current) => current + 1);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [hostTimeSync, sessionRole]);
 
   useEffect(() => {
     if (!sensorModeEnabled) {
@@ -1617,22 +1673,29 @@ function App() {
     pointerDisplayAnimationRef.current = window.requestAnimationFrame(step);
   }, [sessionRole, shareMode, sharedPointer]);
 
+  const effectiveTime = useMemo(() => {
+    if (sessionRole === 'guest' && hostTimeSync) {
+      return getSyncedHostTime(hostTimeSync);
+    }
+    return time;
+  }, [hostTimeSync, hostTimeTick, sessionRole, time]);
+
   const positions = useMemo(() => {
     if (!location) return [];
-    return calculateTargets(location, time);
-  }, [location, time]);
+    return calculateTargets(location, effectiveTime);
+  }, [effectiveTime, location]);
 
   const stars = useMemo(() => {
     if (!location) return [];
-    return calculateStars(location, time);
-  }, [location, time]);
+    return calculateStars(location, effectiveTime);
+  }, [effectiveTime, location]);
 
   const sunPosition = useMemo(() => {
     if (!location) return null;
-    return calculateSunPosition(location, time);
-  }, [location, time]);
+    return calculateSunPosition(location, effectiveTime);
+  }, [effectiveTime, location]);
   const skyBrightnessState = sunPosition ? getSkyBrightnessState(sunPosition.altitudeDeg) : null;
-  const observationDateTimeValue = formatDateTimeLocal(time);
+  const observationDateTimeValue = formatDateTimeLocal(effectiveTime);
 
   const activeTargetId =
     shareMode === 'pointer'
@@ -1751,6 +1814,13 @@ function App() {
                 Now
               </button>
             </div>
+          </div>
+        )}
+        {sessionRole === 'guest' && hostTimeSync && (
+          <div className="host-time-badge" aria-label="Host時刻">
+            Host時刻{' '}
+            {effectiveTime.toLocaleDateString('ja-JP', { month: '2-digit', day: '2-digit' })}{' '}
+            {effectiveTime.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
           </div>
         )}
         {sensorNotice && <div className="sensor-notice">{sensorNotice}</div>}

@@ -98,12 +98,18 @@ export type SharedPointer = {
   altitudeDeg: number;
 };
 
+export type HostTimeSync = {
+  baseObservationTimeIso: string;
+  baseRealTimeMs: number;
+};
+
 export type SessionState = {
   role: SessionRole;
   sessionId: string | null;
   sharedTargetId: TargetId | null;
   shareMode: ShareMode;
   sharedPointer: SharedPointer | null;
+  hostTimeSync: HostTimeSync | null;
   participantCount: number;
   connectionStatus: ConnectionStatus;
   reconnecting: boolean;
@@ -114,6 +120,7 @@ export type ClientWsMessage =
   | { type: 'guest:join'; sessionId: string }
   | { type: 'target:update'; targetId: TargetId | null; shareMode?: 'off' | 'target' }
   | { type: 'pointer:update'; azimuth: number; altitude: number }
+  | { type: 'time:sync'; baseObservationTimeIso: string; baseRealTimeMs: number }
   | { type: 'session:end' };
 
 export type ServerWsMessage =
@@ -123,10 +130,12 @@ export type ServerWsMessage =
       targetId: TargetId | null;
       shareMode?: ShareMode;
       pointer: SharedPointer | null;
+      timeSync?: HostTimeSync | null;
       participantCount: number;
     }
   | { type: 'target:update'; targetId: TargetId | null; shareMode?: 'off' | 'target' }
   | { type: 'pointer:update'; azimuth: number; altitude: number }
+  | { type: 'time:sync'; baseObservationTimeIso: string; baseRealTimeMs: number }
   | { type: 'session:ended'; reason: 'host_ended' | 'host_disconnected' | 'server_shutdown' }
   | {
       type: 'error';
@@ -137,6 +146,7 @@ export type ServerWsMessage =
         | 'INVALID_SESSION_ID'
         | 'INVALID_TARGET_ID'
         | 'INVALID_POINTER'
+        | 'INVALID_TIME_SYNC'
         | 'ROOM_FULL'
         | 'RATE_LIMITED';
     };
