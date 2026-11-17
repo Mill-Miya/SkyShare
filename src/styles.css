@@ -2081,3 +2081,22 @@ input:not([type="checkbox"]):not([type="radio"]) {
     animation-duration: 1ms;
   }
 }
+
+/* Creator attribution on Settings only: never overlays observation controls. */
+.creator-credit {
+  margin-top: 20px;
+  padding: 14px 0 4px;
+  border-top: 1px solid rgba(244, 241, 223, 0.16);
+}
+.creator-credit a {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(244, 241, 223, 0.76);
+  font-size: 12px;
+  text-decoration: none;
+}
+.creator-credit a:hover,
+.creator-credit a:focus-visible { color: #fff; }
+.creator-credit img { width: 32px; height: 32px; object-fit: contain; }
+.night-mode .creator-credit { border-color: rgba(255, 88, 68, 0.22); }
