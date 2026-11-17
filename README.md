@@ -37,3 +37,9 @@ Deployment notes for the club test are in:
 - The frontend can be hosted on GitHub Pages.
 - The WebSocket/API server must be hosted separately, such as Render Free.
 - Do not add a Service Worker before the club test to avoid cache issues.
+
+## Creator
+
+<a href="https://github.com/Mill-Miya"><picture><source media="(prefers-color-scheme: dark)" srcset="public/brand/r-logo-white.svg"><img src="public/brand/r-logo-black.svg" alt="Mill-Miya R logo" width="44"></picture></a>
+
+Created by [Mill-Miya](https://github.com/Mill-Miya). The creator mark is separate from the Sorava app identity.
