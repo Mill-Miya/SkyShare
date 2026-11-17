@@ -2821,7 +2821,7 @@ function SettingsPage({
       )}
 
       <div className="creator-credit">
-        <a href="https://github.com/Mill-Miya" target="_blank" rel="noopener noreferrer" aria-label="制作者 Mill-Miya のGitHubプロフィール">
+        <a href="https://mill-miya.github.io/" target="_blank" rel="noopener noreferrer" aria-label="Mill-Miya ポートフォリオへ">
           <img src={`${import.meta.env.BASE_URL}brand/r-logo-white.svg`} alt="" width="32" height="32" />
           <span>Created by <strong>Mill-Miya</strong></span>
         </a>

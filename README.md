@@ -40,6 +40,6 @@ Deployment notes for the club test are in:
 
 ## Creator
 
-<a href="https://github.com/Mill-Miya"><picture><source media="(prefers-color-scheme: dark)" srcset="public/brand/r-logo-white.svg"><img src="public/brand/r-logo-black.svg" alt="Mill-Miya R logo" width="44"></picture></a>
+<a href="https://mill-miya.github.io/"><picture><source media="(prefers-color-scheme: dark)" srcset="public/brand/r-logo-white.svg"><img src="public/brand/r-logo-black.svg" alt="Mill-Miya R logo" width="44"></picture></a>
 
 Created by [Mill-Miya](https://github.com/Mill-Miya). The creator mark is separate from the Sorava app identity.
